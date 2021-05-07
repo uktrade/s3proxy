@@ -20,7 +20,9 @@ class CustomAuthBrokerBackend(AuthbrokerBackend):
 
     @staticmethod
     def get_or_create_user(profile):
-        user = User.objects.filter(username=profile["email_user_id"])
+        user = User.objects.filter(
+            username=profile["email_user_id"],
+        ).first()
 
         if user:
             user.username = profile["email_user_id"]
