@@ -8,5 +8,9 @@
 ### App ###
 .env
 
-### IDE ###
+### IDE / env###
+.direnv/
 .idea/
+.pytest_cache/
+bin/
+.environ
