@@ -1,0 +1,6 @@
+# Constrain to base requirements
+-r ../requirements/base.txt
+
+flake8
+pip-tools
+black

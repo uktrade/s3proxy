@@ -1,0 +1,7 @@
+django
+boto3
+django-staff-sso-client
+django-environ
+psycogreen
+psycopg2
+sentry_sdk

@@ -4,9 +4,3 @@
 .DS_Store
 .AppleDouble
 .LSOverride
-
-### App ###
-.env
-
-### IDE ###
-.idea/

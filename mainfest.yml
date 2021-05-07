@@ -1,0 +1,3 @@
+applications:
+  - buildpacks:
+    - https://github.com/cloudfoundry/python-buildpack.git
