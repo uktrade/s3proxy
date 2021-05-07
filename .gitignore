@@ -8,6 +8,9 @@
 ### App ###
 .env
 
+### Python ###
+*.pyc
+
 ### IDE / env###
 .direnv/
 .idea/
