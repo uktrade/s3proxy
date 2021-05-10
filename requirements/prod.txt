@@ -32,6 +32,8 @@ django==3.2.2
     # via
     #   -r requirements.in/../requirements/base.txt
     #   django-staff-sso-client
+gunicorn==20.1.0
+    # via -r requirements.in/prod.in
 idna==2.10
     # via
     #   -r requirements.in/../requirements/base.txt
@@ -85,3 +87,6 @@ urllib3==1.26.4
     #   botocore
     #   requests
     #   sentry-sdk
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
