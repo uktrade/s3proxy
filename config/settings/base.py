@@ -71,7 +71,7 @@ if "aws-s3-bucket" in VCAP_SERVICES:
     AWS_SECRET_ACCESS_KEY = app_bucket_creds["aws_secret_access_key"]
 else:
     AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-    AWS_REGION = env("AWS_REGION")
+    AWS_REGION = env("AWS_REGION", default="eu-west-2")
     AWS_DEFAULT_REGION = env("AWS_REGION", default="eu-west-2")
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
