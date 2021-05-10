@@ -41,6 +41,8 @@ greenlet==1.1.0
     # via
     #   -r requirements.in/prod.in
     #   gevent
+gunicorn==20.1.0
+    # via -r requirements.in/prod.in
 idna==2.10
     # via
     #   -r requirements.in/../requirements/base.txt

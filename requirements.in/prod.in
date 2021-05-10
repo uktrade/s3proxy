@@ -5,3 +5,4 @@ greenlet
 gevent
 psycogreen
 elastic-apm
+gunicorn
