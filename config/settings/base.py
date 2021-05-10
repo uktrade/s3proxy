@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
     "file_proxy",
     "user",
     "authbroker_client",
