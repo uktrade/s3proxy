@@ -6,5 +6,6 @@ from file_proxy.views import file_proxy
 urlpatterns = [
     # URLs for Staff SSO Auth broker
     path("auth/", include(authbroker_client_urls)),
+    path("pingdom/", include("pingdom.urls")),
     path("<path:s3_path>", file_proxy, name="file_proxy"),
 ]

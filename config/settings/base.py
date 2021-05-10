@@ -76,6 +76,10 @@ else:
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
 
+AUTHBROKER_ANONYMOUS_PATHS = [
+    "/pingdom/ping.xml",
+]
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 

@@ -6,3 +6,5 @@ gevent
 psycogreen
 elastic-apm
 gunicorn
+django_log_formatter_ecs
+django-audit-log-middleware
