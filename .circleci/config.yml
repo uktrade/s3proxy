@@ -6,9 +6,6 @@ jobs:
         steps:
             - checkout
             - run:
-                name: Copy env file
-                command: cp .env.ci .env
-            - run:
                 name: build containers
                 command: make build
             - run:
