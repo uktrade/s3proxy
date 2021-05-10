@@ -62,10 +62,19 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # AWS
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-AWS_REGION = env("AWS_REGION")
-AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+if "aws-s3-bucket" in VCAP_SERVICES:
+    app_bucket_creds = VCAP_SERVICES["aws-s3-bucket"][0]["credentials"]
+    AWS_REGION = app_bucket_creds["aws_region"]
+    AWS_DEFAULT_REGION = app_bucket_creds["aws_region"]
+    AWS_STORAGE_BUCKET_NAME = app_bucket_creds["bucket_name"]
+    AWS_ACCESS_KEY_ID = app_bucket_creds["aws_access_key_id"]
+    AWS_SECRET_ACCESS_KEY = app_bucket_creds["aws_secret_access_key"]
+else:
+    AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+    AWS_REGION = env("AWS_REGION")
+    AWS_DEFAULT_REGION = env("AWS_REGION", default="eu-west-2")
+    AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
