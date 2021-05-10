@@ -1,4 +1,7 @@
 # Constrain to base requirements
 -r ../requirements/base.txt
 
-gunicorn
+greenlet
+gevent
+psycogreen
+elastic-apm
