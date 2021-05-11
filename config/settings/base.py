@@ -90,4 +90,4 @@ USE_L10N = True
 USE_TZ = True
 
 # Chunk size
-CHUNK_SIZE = env.int("CHUNK_SIZE", 5120)
+CHUNK_SIZE = env.int("CHUNK_SIZE", 2048 * 1024)

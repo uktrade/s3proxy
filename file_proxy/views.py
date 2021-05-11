@@ -17,7 +17,10 @@ def file_proxy(request, s3_path):
         Key=s3_path,
     )
 
-    return StreamingHttpResponse(
+    response = StreamingHttpResponse(
         s3_file["Body"].iter_chunks(chunk_size=settings.CHUNK_SIZE),
         content_type=s3_file["ContentType"],
     )
+
+    response['Content-Length'] = s3_file["ContentLength"]
+    return response
