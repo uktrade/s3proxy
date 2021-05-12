@@ -846,7 +846,7 @@ class TestS3Proxy(unittest.TestCase):
 
 
 def create_application(
-        port, max_attempts=100,
+        port, max_attempts=500,
         aws_access_key_id='AKIAIOSFODNN7EXAMPLE',
         healthcheck_key='heathcheck.txt',
 ):
