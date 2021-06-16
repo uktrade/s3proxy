@@ -1,5 +1,5 @@
 Flask==1.1.1
 gevent==1.4.0
 redis==3.3.6
-requests>=2.25.1
-urllib3>=1.26.5
+requests==2.25.1
+urllib3==1.26.5
