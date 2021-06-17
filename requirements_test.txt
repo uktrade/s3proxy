@@ -6,6 +6,8 @@
 #
 appdirs==1.4.4
     # via virtualenv
+astroid==2.5.8
+    # via pylint
 certifi==2021.5.30
     # via requests
 cfgv==3.3.0
@@ -30,15 +32,23 @@ identify==2.2.10
     # via pre-commit
 idna==2.10
     # via requests
+isort==4.3.21
+    # via pylint
 itsdangerous==2.0.1
     # via flask
 jinja2==3.0.1
     # via flask
+lazy-object-proxy==1.6.0
+    # via astroid
 markupsafe==2.0.1
     # via jinja2
+mccabe==0.6.1
+    # via pylint
 nodeenv==1.6.0
     # via pre-commit
 pre-commit==2.13.0
+    # via -r requirements_test.in
+pylint==2.3.1
     # via -r requirements_test.in
 pyyaml==5.4.1
     # via pre-commit
@@ -58,3 +68,5 @@ virtualenv==20.4.7
     # via pre-commit
 werkzeug==2.0.1
     # via flask
+wrapt==1.12.1
+    # via astroid
