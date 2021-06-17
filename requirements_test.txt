@@ -30,7 +30,7 @@ filelock==3.0.12
     # via virtualenv
 flask==1.1.1
     # via -r requirements.txt
-gevent==1.4.0
+gevent==21.1.2
     # via -r requirements.txt
 greenlet==1.1.0
     # via
@@ -88,3 +88,14 @@ werkzeug==2.0.1
     #   flask
 wrapt==1.12.1
     # via astroid
+zope.event==4.5.0
+    # via
+    #   -r requirements.txt
+    #   gevent
+zope.interface==5.4.0
+    # via
+    #   -r requirements.txt
+    #   gevent
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
