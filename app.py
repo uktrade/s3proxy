@@ -52,7 +52,7 @@ def proxy_app(
     def start():
         server.serve_forever()
 
-    def stop():
+    def stop(_, __):
         server.stop()
 
     def authenticate_by_sso(f):
@@ -346,7 +346,7 @@ def main():
         os.environ['AWS_S3_HEALTHCHECK_KEY'],
     )
 
-    gevent.signal(signal.SIGTERM, stop)
+    gevent.signal.signal(signal.SIGTERM, stop)
     start()
     gevent.get_hub().join()
 

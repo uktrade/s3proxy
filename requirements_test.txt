@@ -30,7 +30,7 @@ filelock==3.0.12
     # via virtualenv
 flask==1.1.1
     # via -r requirements.txt
-gevent==1.4.0
+gevent==21.1.2
     # via -r requirements.txt
 greenlet==1.1.0
     # via
