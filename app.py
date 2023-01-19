@@ -1,43 +1,42 @@
-from gevent import (
-    monkey,
+import requests
+import redis
+from gevent.pywsgi import (
+    WSGIHandler,
+    WSGIServer,
 )
-monkey.patch_all()
-import gevent
-
-from datetime import (
-    datetime,
-)
-from functools import (
-    wraps,
-)
-import hashlib
-import hmac
-import logging
-import json
-import os
-import secrets
-import signal
-import sys
-import urllib.parse
-
 from flask import (
     Flask,
     Response,
     request,
 )
-from gevent.pywsgi import (
-    WSGIHandler,
-    WSGIServer,
+import urllib.parse
+import sys
+import signal
+import secrets
+import os
+import json
+import logging
+import hmac
+import hashlib
+from functools import (
+    wraps,
 )
-import redis
-import requests
+from datetime import (
+    datetime,
+)
+import gevent
+import boto3
+from gevent import (
+    monkey,
+)
+monkey.patch_all()
 
 
 def proxy_app(
         logger,
         port, redis_url,
         sso_url, sso_client_id, sso_client_secret,
-        aws_access_key_id, aws_secret_access_key, endpoint_url, region_name, healthcheck_key,
+        aws_access_key_id, aws_secret_access_key, bucket_conf, region_name, healthcheck_key,
 ):
 
     proxied_request_headers = ['range', ]
@@ -48,12 +47,29 @@ def proxy_app(
     ]
     redis_prefix = 's3proxy'
     redis_client = redis.from_url(redis_url)
+    bucket, prefix = get_bucket_and_prefix(bucket_conf)
+    s3 = boto3.session.Session().resource('s3')
 
     def start():
         server.serve_forever()
 
     def stop(_, __):
         server.stop()
+
+    def get_bucket_and_prefix(input_string):
+        parts = input_string.split('/')
+        bucket = parts[0]
+        prefix = ''
+        if len(parts) == 2:
+            prefix = parts[1] + '/'
+        if len(parts) > 2:
+            logger.debug('AWS_BUCKET var misconfigured %s', input_string)
+            if input_string[-1] == '/':
+                return get_bucket_and_prefix(input_string[:-1])
+            if input_string[0] == '/':
+                return get_bucket_and_prefix(input_string[1:])
+            return input_string
+        return (bucket, prefix)
 
     def authenticate_by_sso(f):
         auth_path = 'o/authorize/'
@@ -98,7 +114,8 @@ def proxy_app(
                 response.set_cookie(
                     session_cookie_name, session_id,
                     httponly=True,
-                    secure=request.headers.get('x-forwarded-proto', 'http') == 'https',
+                    secure=request.headers.get(
+                        'x-forwarded-proto', 'http') == 'https',
                     max_age=cookie_max_age,
                     expires=datetime.utcnow().timestamp() + cookie_max_age,
                 )
@@ -142,7 +159,8 @@ def proxy_app(
                     return Response(b'', 400)
 
                 try:
-                    final_uri = redis_get(f'{session_state_key_prefix}__{state}')
+                    final_uri = redis_get(
+                        f'{session_state_key_prefix}__{state}')
                 except KeyError:
                     logger.exception('Unable to find state in Redis')
                     return Response(expired_message, 403, headers={'content-type': 'text/html'})
@@ -160,7 +178,8 @@ def proxy_app(
                     content = response.content
 
                 if response.status_code in [401, 403]:
-                    logger.debug('token_path response is %s', response.status_code)
+                    logger.debug('token_path response is %s',
+                                 response.status_code)
                     return Response(b'', response.status_code)
 
                 if response.status_code != 200:
@@ -204,17 +223,22 @@ def proxy_app(
     def proxy(path):
         logger.debug('Attempt to proxy: %s', request)
 
-        url = endpoint_url + path
-        body_hash = hashlib.sha256(b'').hexdigest()
-        pre_auth_headers = tuple((
-            (key, request.headers[key])
-            for key in proxied_request_headers if key in request.headers
-        ))
-        parsed_url = urllib.parse.urlsplit(url)
-        request_headers = aws_sigv4_headers(
-            pre_auth_headers, 's3', parsed_url.netloc, 'GET', parsed_url.path, (), body_hash,
-        )
-        response = requests.get(url, headers=dict(request_headers), stream=True)
+        object_key = prefix + path
+        s3_obj = s3.Object(bucket_name=bucket, key=object_key)
+
+        # url = bucket_conf + path
+        # body_hash = hashlib.sha256(b'').hexdigest()
+        # pre_auth_headers = tuple((
+        #     (key, request.headers[key])
+        #     for key in proxied_request_headers if key in request.headers
+        # ))
+        # parsed_url = urllib.parse.urlsplit(url)
+        # request_headers = aws_sigv4_headers(
+        #     pre_auth_headers, 's3', parsed_url.netloc, 'GET', parsed_url.path, (), body_hash,
+        # )
+
+        # response = requests.get(
+        #     url, headers=dict(request_headers), stream=True)
 
         response_headers = tuple((
             (key, response.headers[key])
@@ -226,7 +250,7 @@ def proxy_app(
         logger.debug('Allowing proxy: %s', allow_proxy)
 
         def body_upstream():
-            for chunk in response.iter_content(16384):
+            for chunk in s3_obj.iter_content(16384):
                 yield chunk
 
         def body_empty():
@@ -234,7 +258,7 @@ def proxy_app(
             while False:
                 yield
 
-            for _ in response.iter_content(16384):
+            for _ in s3_obj.iter_content(16384):
                 pass
 
         downstream_response = \
@@ -277,11 +301,14 @@ def proxy_app(
             def canonical_request():
                 canonical_uri = urllib.parse.quote(path, safe='/~')
                 quoted_params = sorted(
-                    (urllib.parse.quote(key, safe='~'), urllib.parse.quote(value, safe='~'))
+                    (urllib.parse.quote(key, safe='~'),
+                     urllib.parse.quote(value, safe='~'))
                     for key, value in params
                 )
-                canonical_querystring = '&'.join(f'{key}={value}' for key, value in quoted_params)
-                canonical_headers = ''.join(f'{key}:{value}\n' for key, value in headers)
+                canonical_querystring = '&'.join(
+                    f'{key}={value}' for key, value in quoted_params)
+                canonical_headers = ''.join(
+                    f'{key}:{value}\n' for key, value in headers)
 
                 return f'{method}\n{canonical_uri}\n{canonical_querystring}\n' + \
                        f'{canonical_headers}\n{signed_headers}\n{body_hash}'
@@ -290,9 +317,11 @@ def proxy_app(
                 return hmac.new(key, msg.encode('ascii'), hashlib.sha256).digest()
 
             string_to_sign = f'{algorithm}\n{amzdate}\n{credential_scope}\n' + \
-                             hashlib.sha256(canonical_request().encode('ascii')).hexdigest()
+                             hashlib.sha256(
+                                 canonical_request().encode('ascii')).hexdigest()
 
-            date_key = sign(('AWS4' + aws_secret_access_key).encode('ascii'), datestamp)
+            date_key = sign(
+                ('AWS4' + aws_secret_access_key).encode('ascii'), datestamp)
             region_key = sign(date_key, region_name)
             service_key = sign(region_key, service)
             request_key = sign(service_key, 'aws4_request')
@@ -320,7 +349,8 @@ def proxy_app(
 
     app.add_url_rule('/', view_func=proxy, defaults={'path': '/'})
     app.add_url_rule('/<path:path>', view_func=proxy)
-    server = WSGIServer(('0.0.0.0', port), app, handler_class=RequestLinePathHandler)
+    server = WSGIServer(('0.0.0.0', port), app,
+                        handler_class=RequestLinePathHandler)
 
     return start, stop
 
@@ -335,13 +365,14 @@ def main():
     start, stop = proxy_app(
         logger,
         int(os.environ['PORT']),
-        json.loads(os.environ['VCAP_SERVICES'])['redis'][0]['credentials']['uri'],
+        json.loads(os.environ['VCAP_SERVICES'])[
+            'redis'][0]['credentials']['uri'],
         os.environ['SSO_URL'],
         os.environ['SSO_CLIENT_ID'],
         os.environ['SSO_CLIENT_SECRET'],
         os.environ['AWS_ACCESS_KEY_ID'],
         os.environ['AWS_SECRET_ACCESS_KEY'],
-        os.environ['AWS_S3_ENDPOINT'],
+        os.environ['AWS_S3_BUCKET'],
         os.environ['AWS_S3_REGION'],
         os.environ['AWS_S3_HEALTHCHECK_KEY'],
     )
