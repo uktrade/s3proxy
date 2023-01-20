@@ -9,7 +9,7 @@ An OAuth-authenticated streaming proxy to S3
 | `SSO_URL`                | The root URL to SSO                                                                                                   | `https://sso.domain.com/`             |
 | `SSO_CLIENT_ID`          | The client ID of the SSO application                                                                                  | _not shown_                           |
 | `SSO_CLIENT_SECRET`      | The client secret of the SSO application                                                                              | _not shown_                           |
-| `AWS_S3_REGION`          | The AWS region of the S3 bucket                                                                                       | `eu-west-2`                           |
+| `AWS_DEFAULT_REGION`     | The AWS region of the S3 bucket                                                                                       | `eu-west-2`                           |
 | `AWS_S3_BUCKET`          | The S3 bucket name, optionally including a key prefix (i.e. a "folder" in the bucket). No trailing slash is expected. | `my-bucket`<br>`my-bucket/key-prefix` |
 | `AWS_S3_HEALTHCHECK_KEY` | The key of an object in the S3 bucket to be proxied without SSO authentication                                        | `healthcheck.txt`                     |
 
@@ -22,14 +22,17 @@ The below environment variables are also required, but typically populated by Pa
 
 ## Optional environment variables
 
-AWS authentication to access the buckets can be provided via keys made available as environment variables. If they are present, they will be used.
+AWS authentication to access the buckets may be provided via keys made available as environment variables. If they are present, they will be used.
 
-If this service is running on an AWS instance with a relevant IAM Role applied to the instance, these variables must be omitted in order to use the Role credentials (note that no AWS credentials may be present in any of the standard locations on the instance, or they will be used in preference to the Role).
+If this service is running on an AWS instance with a relevant IAM Role applied to the instance, these variables must be omitted in order to use the Role credentials
 
-| Variable                | Description                                                                      | Example     |
-| ----------------------- | -------------------------------------------------------------------------------- | ----------- |
-| `AWS_ACCESS_KEY_ID`     | The AWS access key ID that has GetObject, and optionally ListBucket, permissions | _not shown_ |
-| `AWS_SECRET_ACCESS_KEY` | The secret part of the AWS access key                                            | _not shown_ |
+> Note that to use an IAM Instance Role no AWS credentials may be present in any of the standard locations on the instance, or they will be used in preference to the Role credentials.
+
+| Variable                | Description                                                                        | Example     |
+| ----------------------- | ---------------------------------------------------------------------------------- | ----------- |
+| `AWS_ACCESS_KEY_ID`     | The AWS access key ID that has GetObject, and optionally ListBucket, permissions   | _not shown_ |
+| `AWS_SECRET_ACCESS_KEY` | The secret part of the AWS access key                                              | _not shown_ |
+| `KEY_PREFIX`            | A folder-like prefix to be prepended to all object keys. No slashes should be used | `my-folder` |
 
 ## Permissions and 404s
 
