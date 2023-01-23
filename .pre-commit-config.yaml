@@ -13,8 +13,8 @@ repos:
     #     - --ignore=E402
     - id: check-ast
     - id: check-case-conflict
-    # - id: debug-statements
-    # - id: double-quote-string-fixer
+    - id: debug-statements
+    - id: double-quote-string-fixer
     - id: end-of-file-fixer
 # We run pylint from local env, to ensure modules can be found
 - repo: local

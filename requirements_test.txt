@@ -62,7 +62,7 @@ mccabe==0.6.1
     # via pylint
 nodeenv==1.6.0
     # via pre-commit
-pre-commit==2.13.0
+pre-commit==2.21.0
     # via -r requirements_test.in
 pylint==2.3.1
     # via -r requirements_test.in
