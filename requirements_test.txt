@@ -54,6 +54,7 @@ jinja2==3.0.1
     #   flask
 lazy-object-proxy==1.6.0
     # via astroid
+mock==5.0.1
 markupsafe==2.0.1
     # via
     #   -r requirements.txt

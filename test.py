@@ -1,9 +1,12 @@
+from app import get_boto_s3client_args
+import boto3
 from datetime import (
     datetime,
 )
 import hashlib
 import hmac
 import json
+from mock import patch
 from multiprocessing import (
     Process,
 )
@@ -26,12 +29,25 @@ from flask import (
 import redis
 import requests
 
+# @TODO this patching doesnt seem to be working
+
+@patch('app.get_boto_s3client_args')
+def get_boto_s3client_args_for_testing(_):
+    args, kwargs = get_boto_s3client_args(
+        aws_access_key_id='AKIAIOSFODNN7EXAMPLE',
+        aws_secret_access_key='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        aws_region='us-east-1',
+        )
+    kwargs['endpoint_url'] = 'https://127.0.0.1:9000'
+    kwargs['aws_session_token'] = None
+    kwargs['verify'] = False
+    return args, kwargs
+
 
 class TestS3Proxy(unittest.TestCase):
 
     def test_meta_create_application_fails(self):
-        wait_until_started, stop_application = create_application(
-            8080, max_attempts=1)
+        wait_until_started, stop_application = create_application(max_attempts=1)
 
         with self.assertRaises(ConnectionError):
             wait_until_started()
@@ -47,7 +63,7 @@ class TestS3Proxy(unittest.TestCase):
         stop_sso()
 
     def test_key_that_exists(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -66,7 +82,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(len(response.history), 3)
 
     def test_key_that_exists_parallel_requests_same_session(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(tokens_returned=('the-token', 'the-token'))
@@ -107,7 +123,7 @@ class TestS3Proxy(unittest.TestCase):
                 self.assertEqual(resp_2_4.headers['content-length'], str(len(content)))
 
     def test_key_that_exists_parallel_requests_new_session_on_redirection_endpoint(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(tokens_returned=('the-token', 'the-token'))
@@ -154,7 +170,7 @@ class TestS3Proxy(unittest.TestCase):
         # Ensure that the server does not redirect to a URL with a trailing
         # question mark. A raw socket request is make to have access to the
         # raw bytes of the response, which are hidden if using Python requests
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -198,7 +214,7 @@ class TestS3Proxy(unittest.TestCase):
         # Ensure that the server preserves trailing question marks through
         # redirects. Python requests can strip this, so we use raw socket
         # requests
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -246,7 +262,7 @@ class TestS3Proxy(unittest.TestCase):
         self.assertIn(f'location: http://127.0.0.1:8080/{key}?\r\n', resp_4.decode())
 
     def test_key_that_exists_no_session_302(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -269,7 +285,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(resp_3.status_code, 302)
 
     def test_key_that_exists_second_request_succeeds_no_redirect(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -291,7 +307,7 @@ class TestS3Proxy(unittest.TestCase):
                 self.assertEqual(len(response.history), 0)
 
     def test_key_that_exists_redis_cleared_then_succeeds(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(tokens_returned=['the-token', 'the-token'])
@@ -318,7 +334,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(len(response.history), 3)
 
     def test_key_that_exists_redis_cleared_on_redirection_shows_message(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -348,7 +364,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(resp_3.status_code, 403)
 
     def test_key_that_exists_x_forwarded_proto_respected(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -368,7 +384,7 @@ class TestS3Proxy(unittest.TestCase):
                 session.get(f'http://127.0.0.1:8080/{key}', headers=headers).__enter__()
 
     def test_key_that_exists_me_response_500_is_500(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(me_response_code=500)
@@ -386,7 +402,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.status_code, 500)
 
     def test_key_that_exists_no_sso_started_returns_500(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -410,7 +426,7 @@ class TestS3Proxy(unittest.TestCase):
                 self.assertEqual(response_2.status_code, 500)
 
     def test_key_that_exists_bad_code_perms_returns_403(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(code_returned='not-the-code')
@@ -428,7 +444,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.status_code, 403)
 
     def test_key_that_exists_bad_secret_returns_403(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(client_secret='not-the-secret')
@@ -446,7 +462,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.status_code, 403)
 
     def test_key_that_exists_bad_token_perms_redirects_again_to_success(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(
@@ -468,7 +484,7 @@ class TestS3Proxy(unittest.TestCase):
     def test_key_that_exists_soo_token_returns_500_returns_500(self):
         # Make sure we don't get into infinite redirect
 
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(tokens_returned=())
@@ -486,7 +502,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.status_code, 500)
 
     def test_key_that_exists_not_logged_in_shows_login(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso(is_logged_in=False)
@@ -503,7 +519,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.content, b'The login page')
 
     def test_multiple_concurrent_requests(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -564,7 +580,7 @@ class TestS3Proxy(unittest.TestCase):
         self.assertLess(num_single, 100)
 
     def test_key_that_exists_during_shutdown_completes(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         process = wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -592,7 +608,7 @@ class TestS3Proxy(unittest.TestCase):
 
     def test_key_that_exists_after_multiple_sigterm_completes(self):
         # PaaS can apparently send multiple sigterms
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         process = wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -621,7 +637,7 @@ class TestS3Proxy(unittest.TestCase):
         self.assertEqual(b''.join(chunks), content)
 
     def test_key_that_exists_during_shutdown_completes_but_new_connection_rejected(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         process = wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -654,7 +670,7 @@ class TestS3Proxy(unittest.TestCase):
         # Check that connections that were open before the SIGTERM still work
         # after. Unsure if this is desired on PaaS, so this is more of
         # documenting current behaviour
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         process = wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -694,7 +710,7 @@ class TestS3Proxy(unittest.TestCase):
         self.assertEqual(b''.join(chunks), content)
 
     def test_range_request_from_start(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -713,7 +729,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.headers['content-length'], str(len(content)))
 
     def test_range_request_after_start(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -749,7 +765,7 @@ class TestS3Proxy(unittest.TestCase):
 
     def test_direct_redirection_endpoint_with_state_code_443(self):
         wait_until_started, stop_application = create_application(
-            8080, aws_access_key_id='not-exist')
+            aws_access_key_id='not-exist')
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -767,7 +783,7 @@ class TestS3Proxy(unittest.TestCase):
 
     def test_direct_redirection_endpoint_with_code_no_state_400(self):
         wait_until_started, stop_application = create_application(
-            8080, aws_access_key_id='not-exist')
+            aws_access_key_id='not-exist')
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -784,7 +800,7 @@ class TestS3Proxy(unittest.TestCase):
 
     def test_direct_redirection_endpoint_no_state_no_code_400(self):
         wait_until_started, stop_application = create_application(
-            8080, aws_access_key_id='not-exist')
+            aws_access_key_id='not-exist')
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -797,7 +813,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(resp.status_code, 400)
 
     def test_key_that_does_not_exist(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -812,7 +828,7 @@ class TestS3Proxy(unittest.TestCase):
             self.assertEqual(response.status_code, 404)
 
     def test_root_path_redirects_to_sso(self):
-        wait_until_started, stop_application = create_application(8080)
+        wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
         wait_until_sso_started, stop_sso = create_sso()
@@ -831,7 +847,7 @@ class TestS3Proxy(unittest.TestCase):
         healthcheck_key = str(uuid.uuid4())
 
         wait_until_started, stop_application = create_application(
-            8080, healthcheck_key=healthcheck_key)
+            healthcheck_key=healthcheck_key)
         self.addCleanup(stop_application)
         wait_until_started()
 
@@ -846,10 +862,13 @@ class TestS3Proxy(unittest.TestCase):
 
 
 def create_application(
-        port, max_attempts=500,
+        port=8080,
+        max_attempts=500,
         aws_access_key_id='AKIAIOSFODNN7EXAMPLE',
         healthcheck_key='heathcheck.txt',
-):
+        prefix=None,
+    ):
+
     process = subprocess.Popen(
         ['python3', 'app.py', ],
         stderr=subprocess.PIPE,  # Silence logs
@@ -864,12 +883,12 @@ def create_application(
             'SSO_CLIENT_SECRET': 'the-client-secret',
             'AWS_S3_BUCKET': 'my-bucket',
             'AWS_DEFAULT_REGION': 'us-east-1',
+            'AWS_S3_HEALTHCHECK_KEY': healthcheck_key,
+            # 'KEY_PREFIX': prefix, @TODO
             'AWS_ACCESS_KEY_ID': aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-            'AWS_S3_HEALTHCHECK_KEY': healthcheck_key,
         }
     )
-        # os.environ.get('KEY_PREFIX', None),
 
 
     def wait_until_started():
@@ -893,72 +912,80 @@ def create_application(
 
 
 def put_object(key, contents):
-    url = f'http://127.0.0.1:9000/my-bucket/{key}'
-    body_hash = hashlib.sha256(contents).hexdigest()
-    parsed_url = urllib.parse.urlsplit(url)
+    boto_args, boto_kwargs = get_boto_s3client_args_for_testing()
+    s3 = boto3.client(*boto_args, **boto_kwargs)
+    # print (contents)
+    # print(type(contents))
+    response = s3.put_object(
+        Key=key, Bucket='my-bucket', Body=contents.decode())
+    # s3.upload_fileobj(contents, 'my-bucket', key)
 
-    headers = aws_sigv4_headers(
-        'AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-        (), 's3', 'us-east-1', parsed_url.netloc, 'PUT', parsed_url.path, (), body_hash,
-    )
-    with requests.put(url, data=contents, headers=dict(headers)) as response:
-        response.raise_for_status()
+    # url = f'http://127.0.0.1:9000/my-bucket/{key}'
+    # body_hash = hashlib.sha256(contents).hexdigest()
+    # parsed_url = urllib.parse.urlsplit(url)
+    # print("@TODO")
+    # headers = aws_sigv4_headers(
+    #     'AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    #     (), 's3', 'us-east-1', parsed_url.netloc, 'PUT', parsed_url.path, (), body_hash,
+    # )
+    # with requests.put(url, data=contents, headers=dict(headers)) as response:
+    #     response.raise_for_status()
 
 
-def aws_sigv4_headers(access_key_id, secret_access_key, pre_auth_headers,
-                      service, region, host, method, path, params, body_hash):
-    algorithm = 'AWS4-HMAC-SHA256'
+# def aws_sigv4_headers(access_key_id, secret_access_key, pre_auth_headers,
+#                       service, region, host, method, path, params, body_hash):
+#     algorithm = 'AWS4-HMAC-SHA256'
 
-    now = datetime.utcnow()
-    amzdate = now.strftime('%Y%m%dT%H%M%SZ')
-    datestamp = now.strftime('%Y%m%d')
-    credential_scope = f'{datestamp}/{region}/{service}/aws4_request'
+#     now = datetime.utcnow()
+#     amzdate = now.strftime('%Y%m%dT%H%M%SZ')
+#     datestamp = now.strftime('%Y%m%d')
+#     credential_scope = f'{datestamp}/{region}/{service}/aws4_request'
 
-    pre_auth_headers_lower = tuple((
-        (header_key.lower(), ' '.join(header_value.split()))
-        for header_key, header_value in pre_auth_headers
-    ))
-    required_headers = (
-        ('host', host),
-        ('x-amz-content-sha256', body_hash),
-        ('x-amz-date', amzdate),
-    )
-    headers = sorted(pre_auth_headers_lower + required_headers)
-    signed_headers = ';'.join(key for key, _ in headers)
+#     pre_auth_headers_lower = tuple((
+#         (header_key.lower(), ' '.join(header_value.split()))
+#         for header_key, header_value in pre_auth_headers
+#     ))
+#     required_headers = (
+#         ('host', host),
+#         ('x-amz-content-sha256', body_hash),
+#         ('x-amz-date', amzdate),
+#     )
+#     headers = sorted(pre_auth_headers_lower + required_headers)
+#     signed_headers = ';'.join(key for key, _ in headers)
 
-    def signature():
-        def canonical_request():
-            canonical_uri = urllib.parse.quote(path, safe='/~')
-            quoted_params = sorted(
-                (urllib.parse.quote(key, safe='~'), urllib.parse.quote(value, safe='~'))
-                for key, value in params
-            )
-            canonical_querystring = '&'.join(f'{key}={value}' for key, value in quoted_params)
-            canonical_headers = ''.join(f'{key}:{value}\n' for key, value in headers)
+#     def signature():
+#         def canonical_request():
+#             canonical_uri = urllib.parse.quote(path, safe='/~')
+#             quoted_params = sorted(
+#                 (urllib.parse.quote(key, safe='~'), urllib.parse.quote(value, safe='~'))
+#                 for key, value in params
+#             )
+#             canonical_querystring = '&'.join(f'{key}={value}' for key, value in quoted_params)
+#             canonical_headers = ''.join(f'{key}:{value}\n' for key, value in headers)
 
-            return f'{method}\n{canonical_uri}\n{canonical_querystring}\n' + \
-                   f'{canonical_headers}\n{signed_headers}\n{body_hash}'
+#             return f'{method}\n{canonical_uri}\n{canonical_querystring}\n' + \
+#                    f'{canonical_headers}\n{signed_headers}\n{body_hash}'
 
-        def sign(key, msg):
-            return hmac.new(key, msg.encode('ascii'), hashlib.sha256).digest()
+#         def sign(key, msg):
+#             return hmac.new(key, msg.encode('ascii'), hashlib.sha256).digest()
 
-        string_to_sign = f'{algorithm}\n{amzdate}\n{credential_scope}\n' + \
-                         hashlib.sha256(canonical_request().encode('ascii')).hexdigest()
+#         string_to_sign = f'{algorithm}\n{amzdate}\n{credential_scope}\n' + \
+#                          hashlib.sha256(canonical_request().encode('ascii')).hexdigest()
 
-        date_key = sign(('AWS4' + secret_access_key).encode('ascii'), datestamp)
-        region_key = sign(date_key, region)
-        service_key = sign(region_key, service)
-        request_key = sign(service_key, 'aws4_request')
-        return sign(request_key, string_to_sign).hex()
+#         date_key = sign(('AWS4' + secret_access_key).encode('ascii'), datestamp)
+#         region_key = sign(date_key, region)
+#         service_key = sign(region_key, service)
+#         request_key = sign(service_key, 'aws4_request')
+#         return sign(request_key, string_to_sign).hex()
 
-    return (
-        (b'authorization', (
-            f'{algorithm} Credential={access_key_id}/{credential_scope}, '
-            f'SignedHeaders={signed_headers}, Signature=' + signature()).encode('ascii')
-         ),
-        (b'x-amz-date', amzdate.encode('ascii')),
-        (b'x-amz-content-sha256', body_hash.encode('ascii')),
-    ) + pre_auth_headers
+#     return (
+#         (b'authorization', (
+#             f'{algorithm} Credential={access_key_id}/{credential_scope}, '
+#             f'SignedHeaders={signed_headers}, Signature=' + signature()).encode('ascii')
+#          ),
+#         (b'x-amz-date', amzdate.encode('ascii')),
+#         (b'x-amz-content-sha256', body_hash.encode('ascii')),
+#     ) + pre_auth_headers
 
 
 def create_sso(

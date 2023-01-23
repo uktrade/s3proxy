@@ -34,6 +34,41 @@ import boto3
 from botocore.config import Config
 
 
+def camel_to_pascal_case(input):
+    """Needed for the boto dict keys and param names, vs header names"""
+    return input.replace("_", " ").title().replace(" ", "")
+
+
+def get_boto_s3client_args(
+        aws_access_key_id=None,
+        aws_secret_access_key=None,
+        aws_region=None):
+    """Extracted to a function to allow monkey-patching for test run"""
+    boto_config = Config(
+        signature_version='v4',
+        retries={
+            'max_attempts': 10,
+            'mode': 'standard'
+        }
+    )
+
+    args = ('s3',)
+    kwargs = {
+        "config": boto_config,
+
+        "aws_access_key_id":'AKIAIOSFODNN7EXAMPLE',
+        "aws_secret_access_key":'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        # "aws_region":'us-east-1',
+    }
+    if aws_access_key_id is not None:
+        kwargs['aws_access_key_id'] = aws_access_key_id
+    if aws_secret_access_key is not None:
+        kwargs['aws_secret_access_key'] = aws_secret_access_key
+    if aws_region is not None:
+        kwargs['region_name'] = aws_region
+    return args, kwargs
+
+
 def proxy_app(
         logger,
         port, redis_url,
@@ -55,20 +90,9 @@ def proxy_app(
     else:
         key_prefix = ""
 
-    boto_config = Config(
-        signature_version='v4',
-        retries={
-            'max_attempts': 10,
-            'mode': 'standard'
-        }
-    )
-    s3 = boto3.client(
-        's3',
-        config=boto_config,
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_region,
-    )
+    boto_args, boto_kwargs = get_boto_s3client_args(
+        aws_access_key_id, aws_secret_access_key, aws_region)
+    s3 = boto3.client(*boto_args, **boto_kwargs)
 
     def start():
         server.serve_forever()
@@ -239,9 +263,6 @@ def proxy_app(
             for _ in iter(streamingBody):
                 pass
 
-        def camel_to_pascal_case(input):
-            """Needed for the boto dict keys and param names, vs header names"""
-            return input.replace("_", " ").title().replace(" ", "")
 
         request_kwargs = {
             "Bucket": bucket,
