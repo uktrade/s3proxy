@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "s3proxy"
+version = "0.1.0"
+description = "Proxy server for allowing HTTP access to S3 objects only to requests authenticated against SSO"
+authors = []
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.7.9"
+flask = "1.1.1"
+gevent = "21.1.2"
+redis = "3.3.6"
+requests = "2.25.1"
+urllib3 = "1.26.5"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.12.0"
+mypy = "^0.991"
+
+[tool.poetry.group.testing]
+optional = true
+
+[tool.poetry.group.testing.dependencies]
+coverage = "5.5"
+pre-commit = "2.13.0"
+pylint = "2.3.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

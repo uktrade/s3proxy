@@ -1,0 +1,52 @@
+version: "3"
+# Network section required to avoid staff SSO IP collision
+networks:
+  inside:
+    external: false
+    internal: true
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.3.0/24
+services:
+  redis:
+    image: redis:3.2.11
+    networks:
+      - inside
+    ports:
+      - "6379:6379"
+
+  s3proxy:
+    build:
+      context: .
+      dockerfile: "docker/Dockerfile.dev"
+    networks:
+      - default
+      - inside
+    env_file: .env
+    command: "python -m app"
+    volumes:
+      - ./:/app/
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - minio
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # used for dev and testing only; Minio is an S3 clone
+  minio:
+    image:  minio/minio:RELEASE.2019-08-01T22-18-54Z
+    networks:
+      - inside
+    ports:
+      - "9000:9000"
+    environment:
+      - "MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE"
+      - "MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+      - "MINIO_REGION=us-east-1"
+    entrypoint: ['sh']
+    command: ['-c', 'mkdir -p /data/my-bucket && minio server /data']
