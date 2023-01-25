@@ -1,9 +1,9 @@
-from gevent import (
+from gevent import ( # type: ignore
     monkey,
 )
 
 monkey.patch_all()
-import gevent
+import gevent # type: ignore
 
 from datetime import (
     datetime,
@@ -26,7 +26,7 @@ from flask import (
     Response,
     request,
 )
-from gevent.pywsgi import (
+from gevent.pywsgi import ( # type: ignore
     WSGIHandler,
     WSGIServer,
 )
