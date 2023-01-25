@@ -262,6 +262,26 @@ files = [
 toml = ["toml"]
 
 [[package]]
+name = "detect-secrets"
+version = "1.4.0"
+description = "Tool for detecting secrets in the codebase"
+category = "dev"
+optional = false
+python-versions = "*"
+files = [
+    {file = "detect_secrets-1.4.0-py3-none-any.whl", hash = "sha256:d08ecabeee8b68c0acb0e8a354fb98d822a653f6ed05e520cead4c6fc1fc02cd"},
+    {file = "detect_secrets-1.4.0.tar.gz", hash = "sha256:d56787e339758cef48c9ccd6692f7a094b9963c979c9813580b0169e41132833"},
+]
+
+[package.dependencies]
+pyyaml = "*"
+requests = "*"
+
+[package.extras]
+gibberish = ["gibberish-detector"]
+word-list = ["pyahocorasick"]
+
+[[package]]
 name = "distlib"
 version = "0.3.6"
 description = "Distribution utilities"
@@ -1215,4 +1235,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.7.9"
-content-hash = "b18da5b66cdc9505fa7ca59f1d557312156d9e11f3decf011d64e0913a47f984"
+content-hash = "b0f22c094967609b0a18c1c7839b8fb5fbd842ea6df9442b7a26fe6abecb1bfd"

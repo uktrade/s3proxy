@@ -20,6 +20,7 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
 mypy = "^0.991"
+detect-secrets = "^1.4.0"
 
 [tool.poetry.group.testing]
 optional = true
