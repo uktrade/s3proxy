@@ -33,9 +33,6 @@ help:
 build:
 	docker-compose build
 
-utils-build:
-	docker-compose -f docker-compose.yml -f docker-compose.utils.yml build utils
-
 up:
 	docker-compose up
 
@@ -46,101 +43,87 @@ down:
 	docker-compose down
 
 run = docker-compose run --rm
-manage = python manage.py
-poetry = $(run) leavers poetry --quiet
-
-first-use:
-	docker-compose down
-	docker-compose up -d db opensearch
-	$(run) leavers python manage.py createcachetable
-	$(run) leavers python manage.py migrate
-	$(run) leavers python manage.py initialise_staff_index
-	$(run) leavers python manage.py create_test_users
-	$(run) leavers python manage.py seed_employee_ids
-	$(run) leavers python manage.py update_staff_index
-	$(run) leavers python manage.py set_permissions
-	$(run) leavers python manage.py create_test_users
-	docker-compose up
+poetry = $(run) s3proxy poetry --quiet
 
 check-fixme:
 	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml'
 
 migrations:
-	$(run) leavers python manage.py makemigrations
+	$(run) s3proxy python manage.py makemigrations
 
 empty-migration:
-	$(run) leavers python manage.py makemigrations $(app) --empty --name=$(name)
+	$(run) s3proxy python manage.py makemigrations $(app) --empty --name=$(name)
 
 migrate:
-	$(run) leavers python manage.py migrate
+	$(run) s3proxy python manage.py migrate
 
 checkmigrations:
-	$(run) --no-deps leavers python manage.py makemigrations --check
+	$(run) --no-deps s3proxy python manage.py makemigrations --check
 
 compilescss:
 	npm run build
 
 shell:
-	$(run) leavers python manage.py shell
+	$(run) s3proxy python manage.py shell
 
 utils-shell:
 	docker-compose -f docker-compose.yml -f docker-compose.utils.yml run --rm utils /bin/bash
 
 flake8:
-	$(run) leavers flake8 $(file)
+	$(run) s3proxy flake8 $(file)
 
 black:
-	$(run) leavers black .
+	$(run) s3proxy black .
 
 isort:
-	$(run) leavers isort .
+	$(run) s3proxy isort .
 
 format: black isort
 
 mypy:
-	$(run) leavers mypy .
+	$(run) s3proxy mypy .
 
 collectstatic:
-	$(run) leavers python manage.py collectstatic
+	$(run) s3proxy python manage.py collectstatic
 
 bash:
-	$(run) leavers bash
+	$(run) s3proxy bash
 
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
 
 pytest:
-	$(run) leavers pytest --cov --cov-report html -raP --capture=sys -n 4
+	$(run) s3proxy pytest --cov --cov-report html -raP --capture=sys -n 4
 
 test:
-	$(run) leavers pytest --disable-warnings --reuse-db $(test)
+	$(run) s3proxy pytest --disable-warnings --reuse-db $(test)
 
 test-fresh:
-	$(run) leavers pytest --disable-warnings --create-db --reuse-db $(test)
+	$(run) s3proxy pytest --disable-warnings --create-db --reuse-db $(test)
 
 view-coverage:
 	python -m webbrowser -t htmlcov/index.html
 
 superuser:
-	$(run) leavers python manage.py createsuperuser
+	$(run) s3proxy python manage.py createsuperuser
 
 test-users:
-	$(run) leavers python manage.py create_test_users
+	$(run) s3proxy python manage.py create_test_users
 
 seed-employee-ids:
-	$(run) leavers python manage.py seed_employee_ids
+	$(run) s3proxy python manage.py seed_employee_ids
 
 model-graphs:
-	$(run) leavers python manage.py graph_models -a -g -o jml_data_model.png
+	$(run) s3proxy python manage.py graph_models -a -g -o jml_data_model.png
 
 ingest-activity-stream:
-	$(run) leavers python manage.py ingest_activity_stream --limit=10
+	$(run) s3proxy python manage.py ingest_activity_stream --limit=10
 
 serve-docs:
 	docker-compose up docs
 
 staff-index:
-	$(run) leavers $(manage) ingest_staff_data --skip-ingest-staff-records --skip-service-now
+	$(run) s3proxy $(manage) ingest_staff_data --skip-ingest-staff-records --skip-service-now
 
 detect-secrets-init:
 	$(poetry) run detect-secrets scan > .secrets.baseline

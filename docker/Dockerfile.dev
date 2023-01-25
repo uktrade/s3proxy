@@ -22,5 +22,3 @@ COPY poetry.lock pyproject.toml /app/
 RUN poetry install --with dev,testing
 
 COPY . /app/
-
-#RUN pip install -r requirements.txt

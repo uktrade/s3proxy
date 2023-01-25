@@ -1,6 +1,6 @@
 # s3proxy [![CircleCI](https://circleci.com/gh/uktrade/s3proxy.svg?style=svg)](https://circleci.com/gh/uktrade/s3proxy) [![Test Coverage](https://api.codeclimate.com/v1/badges/80938f6b27356411efd5/test_coverage)](https://codeclimate.com/github/uktrade/s3proxy/test_coverage)
 
-An OAuth-authenticated streaming proxy to S3
+> An OAuth-authenticated streaming proxy to S3
 
 
 ## Required environment variables
@@ -51,10 +51,15 @@ The path `/__redirect_from_sso` is used as part of SSO authentication. This corr
 
 ## Running locally
 
-```
-python3 -m app
-```
-
+* Copy the example env file cp .env.example .env
+* Configure env vars (talk to SRE for values)
+* Build local docker instance:
+  * `make build`
+* Start the local docker instance:
+  * `make up`
+* Open a browser at http://localhost:8000/ @TODO
+* Use the "Change user" form to select a user to impersonate @TODO
+* Navigate to http://localhost:8001/leavers/ @TODO
 
 ## Running tests
 
