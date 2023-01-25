@@ -63,17 +63,11 @@ bash:
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
 
-#pytest:
-#	$(run) s3proxy pytest --cov --cov-report html -raP --capture=sys -n 4
-
 test:
+	$(poetry) run python -m unittest -v -b $(test)
+
+view-coverage:
 	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"
-#	$(run) s3proxy pytest --disable-warnings --reuse-db $(test)
-
-#test-fresh:
-#	$(run) s3proxy pytest --disable-warnings --create-db --reuse-db $(test)
-
-#view-coverage:
 #	python -m webbrowser -t htmlcov/index.html
 
 detect-secrets-init:

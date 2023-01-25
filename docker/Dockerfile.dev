@@ -22,3 +22,7 @@ COPY poetry.lock pyproject.toml /app/
 RUN poetry install --with dev,testing
 
 COPY . /app/
+
+# So we have coverage for sub-processes
+# https://coverage.readthedocs.io/en/stable/subprocess.html
+RUN echo "import coverage; coverage.process_startup()" > "$(poetry env info -p)/lib/python3.7/site-packages/coverage.pth"
