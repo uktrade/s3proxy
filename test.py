@@ -27,7 +27,7 @@ import redis
 import requests
 
 
-class TestS3Proxy(unittest.TestCase):
+class TestS3ProxyE2E(unittest.TestCase):
     def test_meta_create_application_fails(self):
         wait_until_started, stop_application = create_application(8080, max_attempts=1)
 
@@ -57,7 +57,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, content)
             self.assertEqual(response.headers["content-length"], str(len(content)))
@@ -79,12 +79,12 @@ class TestS3Proxy(unittest.TestCase):
 
         with requests.Session() as session:
             with session.get(
-                f"http://127.0.0.1:8080/{key}", allow_redirects=False
+                f"http://localhost:8080/{key}", allow_redirects=False
             ) as resp_1_1:
                 url_1_2 = resp_1_1.headers["location"]
 
             with session.get(
-                f"http://127.0.0.1:8080/{key}", allow_redirects=False
+                f"http://localhost:8080/{key}", allow_redirects=False
             ) as resp_2_1:
                 url_2_2 = resp_2_1.headers["location"]
 
@@ -128,12 +128,12 @@ class TestS3Proxy(unittest.TestCase):
 
         with requests.Session() as sess_1, requests.Session() as sess_2:
             with sess_1.get(
-                f"http://127.0.0.1:8080/{key}", allow_redirects=False
+                f"http://localhost:8080/{key}", allow_redirects=False
             ) as resp_1_1:
                 url_1_2 = resp_1_1.headers["location"]
 
             with sess_1.get(
-                f"http://127.0.0.1:8080/{key}", allow_redirects=False
+                f"http://localhost:8080/{key}", allow_redirects=False
             ) as resp_2_1:
                 url_2_2 = resp_2_1.headers["location"]
 
@@ -175,7 +175,7 @@ class TestS3Proxy(unittest.TestCase):
         content = str(uuid.uuid4()).encode() * 100000
         put_object(key, content)
 
-        url_1 = f"http://127.0.0.1:8080/{key}"
+        url_1 = f"http://localhost:8080/{key}"
         with requests.Session() as session:
             with session.get(url_1, allow_redirects=False) as resp_1:
                 url_2 = resp_1.headers["location"]
@@ -205,7 +205,7 @@ class TestS3Proxy(unittest.TestCase):
                 resp_4 += sock.recv(4096)
             sock.close()
 
-            self.assertIn(f"location: http://127.0.0.1:8080/{key}\r\n", resp_4.decode())
+            self.assertIn(f"location: http://localhost:8080/{key}\r\n", resp_4.decode())
 
     def test_key_that_exists_with_trailing_question_mark(self):
         # Ensure that the server preserves trailing question marks through
@@ -251,7 +251,7 @@ class TestS3Proxy(unittest.TestCase):
             resp_4 += sock.recv(4096)
         sock.close()
 
-        self.assertIn(f"location: http://127.0.0.1:8080/{key}?\r\n", resp_4.decode())
+        self.assertIn(f"location: http://localhost:8080/{key}?\r\n", resp_4.decode())
 
     def test_key_that_exists_no_session_302(self):
         wait_until_started, stop_application = create_application(8080)
@@ -290,10 +290,10 @@ class TestS3Proxy(unittest.TestCase):
 
         with requests.Session() as session:
 
-            with session.get(f"http://127.0.0.1:8080/{key}"):
+            with session.get(f"http://localhost:8080/{key}"):
                 pass
 
-            with session.get(f"http://127.0.0.1:8080/{key}") as response:
+            with session.get(f"http://localhost:8080/{key}") as response:
                 self.assertEqual(response.content, content)
                 self.assertEqual(response.headers["content-length"], str(len(content)))
                 self.assertEqual(len(response.history), 0)
@@ -314,13 +314,13 @@ class TestS3Proxy(unittest.TestCase):
 
         with requests.Session() as session:
 
-            with session.get(f"http://127.0.0.1:8080/{key}"):
+            with session.get(f"http://localhost:8080/{key}"):
                 pass
 
-            redis_client = redis.from_url("redis://127.0.0.1:6379/0")
+            redis_client = redis.from_url("redis://redis:6379/0")
             redis_client.flushdb()
 
-            with session.get(f"http://127.0.0.1:8080/{key}") as response:
+            with session.get(f"http://localhost:8080/{key}") as response:
                 pass
 
             self.assertEqual(response.content, content)
@@ -341,14 +341,14 @@ class TestS3Proxy(unittest.TestCase):
 
         with requests.Session() as session:
 
-            url_1 = f"http://127.0.0.1:8080/{key}"
+            url_1 = f"http://localhost:8080/{key}"
             with session.get(url_1, allow_redirects=False) as resp_1:
                 url_2 = resp_1.headers["location"]
 
             with session.get(url_2, allow_redirects=False) as resp_2:
                 url_3 = resp_2.headers["location"]
 
-            redis_client = redis.from_url("redis://127.0.0.1:6379/0")
+            redis_client = redis.from_url("redis://redis:6379/0")
             redis_client.flushdb()
 
             with session.get(url_3, allow_redirects=False) as resp_3:
@@ -375,7 +375,7 @@ class TestS3Proxy(unittest.TestCase):
         # We don't have a SSL server listening, so we expect an SSL error
         with self.assertRaises(requests.exceptions.SSLError):
             with requests.Session() as session:
-                session.get(f"http://127.0.0.1:8080/{key}", headers=headers).__enter__()
+                session.get(f"http://localhost:8080/{key}", headers=headers).__enter__()
 
     def test_key_that_exists_me_response_500_is_500(self):
         wait_until_started, stop_application = create_application(8080)
@@ -390,7 +390,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, b"")
             self.assertEqual(response.status_code, 500)
@@ -409,12 +409,12 @@ class TestS3Proxy(unittest.TestCase):
 
         with requests.Session() as session:
 
-            with session.get(f"http://127.0.0.1:8080/{key}") as response_1:
+            with session.get(f"http://localhost:8080/{key}") as response_1:
                 self.assertEqual(response_1.content, content)
 
             stop_sso()
 
-            with session.get(f"http://127.0.0.1:8080/{key}") as response_2:
+            with session.get(f"http://localhost:8080/{key}") as response_2:
                 self.assertIn(b"500 Internal Server Error", response_2.content)
                 self.assertNotIn(content, response_2.content)
                 self.assertEqual(response_2.status_code, 500)
@@ -432,7 +432,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, b"")
             self.assertEqual(response.status_code, 403)
@@ -450,7 +450,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, b"")
             self.assertEqual(response.status_code, 403)
@@ -470,7 +470,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, content)
             self.assertEqual(len(response.history), 6)
@@ -490,7 +490,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, b"")
             self.assertEqual(response.status_code, 500)
@@ -508,7 +508,7 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key, content)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.content, b"The login page")
 
@@ -529,9 +529,9 @@ class TestS3Proxy(unittest.TestCase):
         put_object(key_2, content_2)
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key_1}", stream=True
+            f"http://localhost:8080/{key_1}", stream=True
         ) as response_1, session.get(
-            f"http://127.0.0.1:8080/{key_2}", stream=True
+            f"http://localhost:8080/{key_2}", stream=True
         ) as response_2:
 
             iter_1 = response_1.iter_content(chunk_size=16384)
@@ -589,7 +589,7 @@ class TestS3Proxy(unittest.TestCase):
         chunks = []
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}", stream=True
+            f"http://localhost:8080/{key}", stream=True
         ) as response:
 
             self.assertEqual(response.headers["content-length"], str(len(content)))
@@ -617,7 +617,7 @@ class TestS3Proxy(unittest.TestCase):
         chunks = []
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}", stream=True
+            f"http://localhost:8080/{key}", stream=True
         ) as response:
 
             self.assertEqual(response.headers["content-length"], str(len(content)))
@@ -648,14 +648,14 @@ class TestS3Proxy(unittest.TestCase):
         chunks = []
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}", stream=True
+            f"http://localhost:8080/{key}", stream=True
         ) as response:
             self.assertEqual(response.headers["content-length"], str(len(content)))
 
             process.terminate()
 
             with self.assertRaises(requests.exceptions.ConnectionError):
-                session.get(f"http://127.0.0.1:8080/{key}", stream=True)
+                session.get(f"http://localhost:8080/{key}", stream=True)
 
             for chunk in response.iter_content(chunk_size=16384):
                 chunks.append(chunk)
@@ -683,9 +683,9 @@ class TestS3Proxy(unittest.TestCase):
         with requests.Session() as session:
             # Ensure we have two connections
             with session.get(
-                f"http://127.0.0.1:8080/{key}", stream=True
+                f"http://localhost:8080/{key}", stream=True
             ) as resp_2, session.get(
-                f"http://127.0.0.1:8080/{key}", stream=True
+                f"http://localhost:8080/{key}", stream=True
             ) as resp_3:
 
                 for chunk in resp_2.iter_content(chunk_size=16384):
@@ -694,12 +694,12 @@ class TestS3Proxy(unittest.TestCase):
                 for chunk in resp_3.iter_content(chunk_size=16384):
                     pass
 
-            with session.get(f"http://127.0.0.1:8080/{key}", stream=True) as resp_4:
+            with session.get(f"http://localhost:8080/{key}", stream=True) as resp_4:
 
                 process.terminate()
 
                 # No exception raised since the connection is already open
-                with session.get(f"http://127.0.0.1:8080/{key}"):
+                with session.get(f"http://localhost:8080/{key}"):
                     pass
 
                 for chunk in resp_4.iter_content(chunk_size=16384):
@@ -722,7 +722,7 @@ class TestS3Proxy(unittest.TestCase):
 
         headers = {"range": "bytes=0-"}
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}", headers=headers
+            f"http://localhost:8080/{key}", headers=headers
         ) as response:
             self.assertEqual(response.content, content)
             self.assertEqual(response.headers["content-length"], str(len(content)))
@@ -741,7 +741,7 @@ class TestS3Proxy(unittest.TestCase):
 
         headers = {"range": "bytes=1-"}
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}", headers=headers
+            f"http://localhost:8080/{key}", headers=headers
         ) as response:
             self.assertEqual(response.content, content[1:])
             self.assertEqual(response.headers["content-length"], str(len(content) - 1))
@@ -759,7 +759,7 @@ class TestS3Proxy(unittest.TestCase):
         key = str(uuid.uuid4()) + "/" + str(uuid.uuid4())
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.status_code, 500)
 
@@ -778,7 +778,7 @@ class TestS3Proxy(unittest.TestCase):
             "code": "the-code",
         }
         with requests.Session() as session, session.get(
-            "http://127.0.0.1:8080/__redirect_from_sso", params=params
+            "http://localhost:8080/__redirect_from_sso", params=params
         ) as resp:
             self.assertEqual(resp.status_code, 403)
 
@@ -796,7 +796,7 @@ class TestS3Proxy(unittest.TestCase):
             "code": "the-code",
         }
         with requests.Session() as session, session.get(
-            "http://127.0.0.1:8080/__redirect_from_sso", params=params
+            "http://localhost:8080/__redirect_from_sso", params=params
         ) as resp:
             self.assertEqual(resp.status_code, 400)
 
@@ -811,7 +811,7 @@ class TestS3Proxy(unittest.TestCase):
         wait_until_sso_started()
 
         with requests.Session() as session, session.get(
-            "http://127.0.0.1:8080/__redirect_from_sso"
+            "http://localhost:8080/__redirect_from_sso"
         ) as resp:
             self.assertEqual(resp.status_code, 400)
 
@@ -826,7 +826,7 @@ class TestS3Proxy(unittest.TestCase):
         key = str(uuid.uuid4()) + "/" + str(uuid.uuid4())
 
         with requests.Session() as session, session.get(
-            f"http://127.0.0.1:8080/{key}"
+            f"http://localhost:8080/{key}"
         ) as response:
             self.assertEqual(response.status_code, 404)
 
@@ -855,12 +855,12 @@ class TestS3Proxy(unittest.TestCase):
         self.addCleanup(stop_application)
         wait_until_started()
 
-        with requests.get(f"http://127.0.0.1:8080/{healthcheck_key}") as resp_1:
+        with requests.get(f"http://localhost:8080/{healthcheck_key}") as resp_1:
             self.assertEqual(resp_1.status_code, 404)
 
         put_object(healthcheck_key, b"OK")
 
-        with requests.get(f"http://127.0.0.1:8080/{healthcheck_key}") as resp_1:
+        with requests.get(f"http://localhost:8080/{healthcheck_key}") as resp_1:
             self.assertEqual(resp_1.status_code, 200)
             self.assertEqual(resp_1.content, b"OK")
 
@@ -882,7 +882,7 @@ def create_application(
             **os.environ,
             "PORT": str(port),
             "VCAP_SERVICES": json.dumps(
-                {"redis": [{"credentials": {"uri": "redis://127.0.0.1:6379/0"}}]}
+                {"redis": [{"credentials": {"uri": "redis://redis:6379/0"}}]}
             ),
             "SSO_URL": "http://127.0.0.1:8081/",
             "SSO_CLIENT_ID": "the-client-id",
@@ -890,7 +890,7 @@ def create_application(
             "AWS_S3_REGION": "us-east-1",
             "AWS_ACCESS_KEY_ID": aws_access_key_id,
             "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-            "AWS_S3_ENDPOINT": "http://127.0.0.1:9000/my-bucket/",
+            "AWS_S3_ENDPOINT": "http://minio:9000/my-bucket/",
             "AWS_S3_HEALTHCHECK_KEY": healthcheck_key,
         },
     )
@@ -916,7 +916,7 @@ def create_application(
 
 
 def put_object(key, contents):
-    url = f"http://127.0.0.1:9000/my-bucket/{key}"
+    url = f"http://minio:9000/my-bucket/{key}"
     body_hash = hashlib.sha256(contents).hexdigest()
     parsed_url = urllib.parse.urlsplit(url)
 
