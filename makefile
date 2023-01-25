@@ -41,14 +41,16 @@ down:
 run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
-#flake8:
-#	$(run) s3proxy flake8 $(file)
+flake8:
+#	$(poetry) run flake8 $(file)
+    @echo -e "$(COLOUR_RED)|--- @TODO! ---|$(COLOUR_NONE)"
 
 black:
 	$(poetry) run black .
 
-#isort:
-#	$(run) s3proxy isort .
+isort:
+#	$(poetry) run isort .
+    @echo -e "$(COLOUR_RED)|--- @TODO! ---|$(COLOUR_NONE)"
 
 format: black isort
 
@@ -64,8 +66,9 @@ all-requirements:
 #pytest:
 #	$(run) s3proxy pytest --cov --cov-report html -raP --capture=sys -n 4
 
-#test:
+test:
 #	$(run) s3proxy pytest --disable-warnings --reuse-db $(test)
+    @echo -e "$(COLOUR_RED)|--- @TODO! ---|$(COLOUR_NONE)"
 
 #test-fresh:
 #	$(run) s3proxy pytest --disable-warnings --create-db --reuse-db $(test)
