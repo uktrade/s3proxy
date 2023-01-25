@@ -7,12 +7,21 @@ jobs:
       image: ubuntu-2004:202101-01
     steps:
       - checkout
-      - run: cp .env.ci .env
-      - run: make build
-      - run: make up-detached
-      - run: make format
-      - run: make flake8
-      - run: make mypy
-      - run: make test
+      - run:
+          name: Setup
+          command: |
+            cp .env.ci .env
+            make build
+            make up-detached
+      - run:
+          name: Linting
+          command: |
+            make format
+            make flake8
+            make mypy
+      - run:
+          name: Testing
+          command: |
+            make test
       - codecov/upload
       - run: make down
