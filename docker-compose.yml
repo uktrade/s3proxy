@@ -25,7 +25,7 @@ services:
       - default
       - inside
     env_file: .env
-    command: "python -m app"
+    command: "poetry run python -m app"
     volumes:
       - ./:/app/
     ports:
