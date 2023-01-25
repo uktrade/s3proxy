@@ -52,19 +52,13 @@ The path `/__redirect_from_sso` is used as part of SSO authentication. This corr
 ## Running locally
 
 * Copy the example env file cp .env.example .env
-* Configure env vars (talk to SRE for values)
+* Configure env vars (talk to SRE for values) - or use as-is, connecting to the local minio container instead of S3
 * Build local docker instance:
   * `make build`
 * Start the local docker instance:
   * `make up`
-* Open a browser at http://localhost:8000/ @TODO
-* Use the "Change user" form to select a user to impersonate @TODO
-* Navigate to http://localhost:8001/leavers/ @TODO
+* Open a browser at http://localhost:8000/<object_key>
 
 ## Running tests
 
-```bash
-./minio-start.sh  # Only required once
-./redis-start.sh  # Only required once
-./test.sh
-```
+Once you have the docker containers running locally (see above) simply `make test`

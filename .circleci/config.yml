@@ -19,6 +19,7 @@ jobs:
             make format
             make flake8
             make mypy
+            make check-fixme
       - run:
           name: Testing
           command: |

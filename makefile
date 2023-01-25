@@ -81,3 +81,7 @@ detect-secrets-audit:
 
 poetry-update:
 	$(poetry) update
+
+check-fixme:
+	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml'
+	! git --no-pager grep -rni @TODO -- ':!./makefile' ':!./.circleci/config.yml'
