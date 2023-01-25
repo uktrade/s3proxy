@@ -191,10 +191,10 @@ class TestS3ProxyE2E(unittest.TestCase):
                 "?" + url_3_parsed.query if url_3_parsed.query else ""
             )
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(("127.0.0.1", 8080))
+            sock.connect(("localhost", 8080))
             req = (
                 f"GET {url_3_full_path} HTTP/1.1\r\n"
-                f"host:127.0.0.1\r\n"
+                f"host:localhost\r\n"
                 f"cookie:{cookies_str}\r\n"
                 f"\r\n"
             )
@@ -223,8 +223,8 @@ class TestS3ProxyE2E(unittest.TestCase):
         put_object(key, content)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1", 8080))
-        req_1 = f"GET /{key}? HTTP/1.1\r\n" f"host:127.0.0.1:8080\r\n" f"\r\n"
+        sock.connect(("localhost", 8080))
+        req_1 = f"GET /{key}? HTTP/1.1\r\n" f"host:localhost:8080\r\n" f"\r\n"
         sock.send(req_1.encode())
 
         resp_1 = b""
@@ -242,8 +242,8 @@ class TestS3ProxyE2E(unittest.TestCase):
             "?" + url_3_parsed.query if url_3_parsed.query else ""
         )
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1", 8080))
-        req = f"GET {url_3_full_path} HTTP/1.1\r\n" f"host:127.0.0.1\r\n" f"\r\n"
+        sock.connect(("localhost", 8080))
+        req = f"GET {url_3_full_path} HTTP/1.1\r\n" f"host:localhost\r\n" f"\r\n"
         sock.send(req.encode())
 
         resp_4 = b""
@@ -898,7 +898,7 @@ def create_application(
     def wait_until_started():
         for i in range(0, max_attempts):
             try:
-                with socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                with socket.create_connection(("0.0.0.0", port), timeout=0.1):
                     break
             except (OSError, ConnectionRefusedError):
                 if i == max_attempts - 1:
@@ -1050,7 +1050,7 @@ def create_sso(
     def wait_until_connected():
         for i in range(0, max_attempts):
             try:
-                with socket.create_connection(("127.0.0.1", 8081), timeout=0.1):
+                with socket.create_connection(("0.0.0.0", 8081), timeout=0.1):
                     break
             except (OSError, ConnectionRefusedError):
                 if i == max_attempts - 1:
