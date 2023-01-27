@@ -1,8 +1,9 @@
-import gevent  # noqa
-from gevent import (  # noqa
+import gevent # type: ignore noqa
+from gevent import ( # type: ignore noqa
     monkey,
 )
-monkey.patch_all()  # noqa
+
+monkey.patch_all()  # noqa type: ignore
 
 import requests
 import redis
@@ -24,7 +25,7 @@ import json
 import logging
 import hmac
 import hashlib
-from functools import (
+from functools import ( # type: ignore
     wraps,
 )
 from datetime import (
@@ -70,19 +71,31 @@ def get_boto_s3client_args(
 
 
 def proxy_app(
-        logger,
-        port, redis_url,
-        sso_url, sso_client_id, sso_client_secret,
-        bucket, aws_region, healthcheck_key,
-        key_prefix=None, aws_access_key_id=None, aws_secret_access_key=None,
+    logger,
+    port,
+    redis_url,
+    sso_url,
+    sso_client_id,
+    sso_client_secret,
+    bucket,
+    aws_region,
+    healthcheck_key,
+    key_prefix=None,
+    aws_access_key_id=None,
+    aws_secret_access_key=None,
 ):
 
     proxied_request_headers = ['range', ]
     proxied_response_headers = [
-        'accept-ranges', 'content-length', 'content-type', 'date', 'etag', 'last-modified',
-        'content-range',
+        "accept-ranges",
+        "content-length",
+        "content-type",
+        "date",
+        "etag",
+        "last-modified",
+        "content-range",
     ]
-    redis_prefix = 's3proxy'
+    redis_prefix = "s3proxy"
     redis_client = redis.from_url(redis_url)
 
     if key_prefix is not None:
@@ -101,23 +114,24 @@ def proxy_app(
         server.stop()
 
     def authenticate_by_sso(f):
-        auth_path = 'o/authorize/'
-        token_path = 'o/token/'
-        me_path = 'api/v1/user/me/'
-        grant_type = 'authorization_code'
-        scope = 'read write'
-        response_type = 'code'
+        auth_path = "o/authorize/"
+        token_path = "o/token/"
+        me_path = "api/v1/user/me/"
+        grant_type = "authorization_code"
+        scope = "read write"
+        response_type = "code"
 
-        redirect_from_sso_path = '/__redirect_from_sso'
+        redirect_from_sso_path = "/__redirect_from_sso"
 
-        session_cookie_name = 'assets_session_id'
-        session_state_key_prefix = 'sso_state'
-        session_token_key = 'sso_token'
+        session_cookie_name = "assets_session_id"
+        session_state_key_prefix = "sso_state"
+        session_token_key = "sso_token"
 
-        expired_message = \
-            b'<p style="font-weight: bold; font-family: Helvetica, Arial, sans-serif">' \
-            b'Sign in may have taken too long. Please try the original link again.' \
-            b'</p>'
+        expired_message = (
+            b'<p style="font-weight: bold; font-family: Helvetica, Arial, sans-serif">'
+            b"Sign in may have taken too long. Please try the original link again."
+            b"</p>"
+        )
 
         cookie_max_age = 60 * 60 * 9
         redis_max_age_session = 60 * 60 * 10
@@ -126,22 +140,23 @@ def proxy_app(
         @wraps(f)
         def _authenticate_by_sso(*args, **kwargs):
 
-            if request.path == f'/{healthcheck_key}':
-                logger.debug('Allowing healthcheck')
+            if request.path == f"/{healthcheck_key}":
+                logger.debug("Allowing healthcheck")
                 return f(*args, **kwargs)
 
-            logger.debug('Authenticating %s', request)
+            logger.debug("Authenticating %s", request)
 
             def get_session_value(key):
                 session_id = request.cookies[session_cookie_name]
-                return redis_get(f'{session_cookie_name}__{session_id}__{key}')
+                return redis_get(f"{session_cookie_name}__{session_id}__{key}")
 
             # In our case all session values are set exactly when we want a new session cookie
             # (done to mitigate session fixation attacks)
             def with_new_session_cookie(response, session_values):
                 session_id = secrets.token_urlsafe(64)
                 response.set_cookie(
-                    session_cookie_name, session_id,
+                    session_cookie_name,
+                    session_id,
                     httponly=True,
                     secure=request.headers.get(
                         'x-forwarded-proto', 'http') == 'https',
@@ -150,60 +165,70 @@ def proxy_app(
                 )
                 for key, value in session_values.items():
                     redis_set(
-                        f'{session_cookie_name}__{session_id}__{key}', value,
-                        redis_max_age_session)
+                        f"{session_cookie_name}__{session_id}__{key}",
+                        value,
+                        redis_max_age_session,
+                    )
 
                 return response
 
             def get_callback_uri():
-                scheme = request.headers.get('x-forwarded-proto', 'http')
-                return f'{scheme}://{request.host}{redirect_from_sso_path}'
+                scheme = request.headers.get("x-forwarded-proto", "http")
+                return f"{scheme}://{request.host}{redirect_from_sso_path}"
 
             def get_request_url_with_scheme():
-                scheme = request.headers.get('x-forwarded-proto', 'http')
-                return f'{scheme}://{request.host}{request.environ["REQUEST_LINE_PATH"]}'
+                scheme = request.headers.get("x-forwarded-proto", "http")
+                return (
+                    f'{scheme}://{request.host}{request.environ["REQUEST_LINE_PATH"]}'
+                )
 
             def redirect_to_sso():
-                logger.debug('Redirecting to SSO')
-                callback_uri = urllib.parse.quote(get_callback_uri(), safe='')
+                logger.debug("Redirecting to SSO")
+                callback_uri = urllib.parse.quote(get_callback_uri(), safe="")
                 state = secrets.token_hex(32)
                 redis_set(
-                    f'{session_state_key_prefix}__{state}', get_request_url_with_scheme(),
-                    redis_max_age_state)
+                    f"{session_state_key_prefix}__{state}",
+                    get_request_url_with_scheme(),
+                    redis_max_age_state,
+                )
 
-                redirect_to = f'{sso_url}{auth_path}?' \
-                    f'scope={scope}&state={state}&' \
-                    f'redirect_uri={callback_uri}&' \
-                    f'response_type={response_type}&' \
-                    f'client_id={sso_client_id}'
+                redirect_to = (
+                    f"{sso_url}{auth_path}?"
+                    f"scope={scope}&state={state}&"
+                    f"redirect_uri={callback_uri}&"
+                    f"response_type={response_type}&"
+                    f"client_id={sso_client_id}"
+                )
 
-                return Response(status=302, headers={'location': redirect_to})
+                return Response(status=302, headers={"location": redirect_to})
 
             def redirect_to_final():
                 try:
-                    code = request.args['code']
-                    state = request.args['state']
+                    code = request.args["code"]
+                    state = request.args["state"]
                 except KeyError:
-                    logger.exception('Missing code or state')
-                    return Response(b'', 400)
+                    logger.exception("Missing code or state")
+                    return Response(b"", 400)
 
                 try:
                     final_uri = redis_get(
                         f'{session_state_key_prefix}__{state}')
                 except KeyError:
-                    logger.exception('Unable to find state in Redis')
-                    return Response(expired_message, 403, headers={'content-type': 'text/html'})
+                    logger.exception("Unable to find state in Redis")
+                    return Response(
+                        expired_message, 403, headers={"content-type": "text/html"}
+                    )
 
-                logger.debug('Attempting to redirect to final: %s', final_uri)
+                logger.debug("Attempting to redirect to final: %s", final_uri)
 
                 data = {
-                    'grant_type': grant_type,
-                    'code': code,
-                    'client_id': sso_client_id,
-                    'client_secret': sso_client_secret,
-                    'redirect_uri': get_callback_uri(),
+                    "grant_type": grant_type,
+                    "code": code,
+                    "client_id": sso_client_id,
+                    "client_secret": sso_client_secret,
+                    "redirect_uri": get_callback_uri(),
                 }
-                with requests.post(f'{sso_url}{token_path}', data=data) as response:
+                with requests.post(f"{sso_url}{token_path}", data=data) as response:
                     content = response.content
 
                 if response.status_code in [401, 403]:
@@ -212,20 +237,20 @@ def proxy_app(
                     return Response(b'', response.status_code)
 
                 if response.status_code != 200:
-                    logger.debug('token_path error')
-                    return Response(b'', 500)
+                    logger.debug("token_path error")
+                    return Response(b"", 500)
 
                 response = with_new_session_cookie(
-                    Response(status=302, headers={'location': final_uri}),
-                    {session_token_key: json.loads(content)['access_token']}
+                    Response(status=302, headers={"location": final_uri}),
+                    {session_token_key: json.loads(content)["access_token"]},
                 )
                 response.autocorrect_location_header = False
                 return response
 
             def get_token_code(token):
-                with requests.get(f'{sso_url}{me_path}', headers={
-                        'authorization': f'Bearer {token}'
-                }) as response:
+                with requests.get(
+                    f"{sso_url}{me_path}", headers={"authorization": f"Bearer {token}"}
+                ) as response:
                     return response.status_code
 
             if request.path == redirect_from_sso_path:
@@ -238,11 +263,11 @@ def proxy_app(
 
             token_code = get_token_code(token)
             if token_code in [401, 403]:
-                logger.debug('token_code response is %s', token_code)
+                logger.debug("token_code response is %s", token_code)
                 return redirect_to_sso()
 
             if token_code != 200:
-                return Response(b'', 500)
+                return Response(b"", 500)
 
             return f(*args, **kwargs)
 
@@ -250,7 +275,7 @@ def proxy_app(
 
     @authenticate_by_sso
     def proxy(path):
-        print('Attempt to proxy: %s', request)
+        logger.debug("Attempt to proxy: %s", request)
 
         def body_upstream(streamingBody):
             for chunk in streamingBody.iter_chunks(chunk_size=16384):
@@ -303,13 +328,13 @@ def proxy_app(
         return downstream_response
 
     def redis_get(key):
-        value_bytes = redis_client.get(f'{redis_prefix}__{key}')
+        value_bytes = redis_client.get(f"{redis_prefix}__{key}")
         if value_bytes is None:
             raise KeyError(key)
         return value_bytes.decode()
 
     def redis_set(key, value, ex):
-        redis_client.set(f'{redis_prefix}__{key}', value.encode(), ex=ex)
+        redis_client.set(f"{redis_prefix}__{key}", value.encode(), ex=ex)
 
     class RequestLinePathHandler(WSGIHandler):
         # The default WSGIHandler does not preseve a trailing question mark
@@ -317,10 +342,10 @@ def proxy_app(
         def get_environ(self):
             return {
                 **super().get_environ(),
-                'REQUEST_LINE_PATH': self.path,
+                "REQUEST_LINE_PATH": self.path,
             }
 
-    app = Flask('app')
+    app = Flask("app")
 
     app.add_url_rule('/', view_func=proxy, defaults={'path': '/'})
     app.add_url_rule('/<path:path>', view_func=proxy)
@@ -358,5 +383,5 @@ def main():
     gevent.get_hub().join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

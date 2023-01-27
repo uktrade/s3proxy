@@ -1,6 +1,0 @@
--r requirements.txt
-
-coverage==5.5
-mock==5.0.1
-pre-commit==2.13.0
-pylint==2.3.1

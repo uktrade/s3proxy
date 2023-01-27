@@ -1,6 +1,7 @@
 # s3proxy [![CircleCI](https://circleci.com/gh/uktrade/s3proxy.svg?style=svg)](https://circleci.com/gh/uktrade/s3proxy) [![Test Coverage](https://api.codeclimate.com/v1/badges/80938f6b27356411efd5/test_coverage)](https://codeclimate.com/github/uktrade/s3proxy/test_coverage)
 
-An OAuth-authenticated streaming proxy to S3
+> An OAuth-authenticated streaming proxy to S3
+
 
 ## Required environment variables
 
@@ -58,20 +59,16 @@ The path `/__redirect_from_sso` is used as part of SSO authentication. This corr
 
 Ensure you have a docker daemon running and available.
 
-```
-./minio-start.sh
-./redis-start.sh
-export PORT=8080
-export VCAP_SERVICES='{"redis": [{"credentials": {"uri": "redis://127.0.0.1:6379/0"}}]}'
-python3 -m app
-```
+* Copy the example env file cp .env.example .env
+* Configure env vars (talk to SRE for values) - or use as-is, connecting to the local minio container instead of S3
+* Build local docker instance:
+  * `make build`
+* Start the local docker instance:
+  * `make up`
+* Open a browser at http://localhost:8000/<object_key>
 
 ## Running tests
 
-Ensure you have a docker daemon running and available, and that you have installed the `coverage` package.
+Ensure you have a docker daemon running and available, and that you have installed the `testing` dependencies via poetry.
 
-```bash
-./minio-start.sh  # Only required once
-./redis-start.sh  # Only required once
-./test.sh
-```
+Once you have the docker containers running locally (see above) simply `make test`
