@@ -1,1 +1,1 @@
-web: python -m app
+web: poetry run python -m app
