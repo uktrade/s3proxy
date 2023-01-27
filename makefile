@@ -16,7 +16,7 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make down$(COLOUR_NONE) : Run docker-compose down"
 	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on the application container"
 	@echo -e "$(COLOUR_YELLOW)make format$(COLOUR_NONE) : Run black and isort"
-	@echo -e "$(COLOUR_YELLOW)make test$(COLOUR_NONE) : Run tests"
+	@echo -e "$(COLOUR_YELLOW)make test$(COLOUR_NONE) : Run tests - can pass argument to specify a single test with make test test=<name_of_your_test>"
 	@echo -e "$(COLOUR_YELLOW)make flake8$(COLOUR_NONE) : Run flake8 checks"
 	@echo -e "$(COLOUR_YELLOW)make black$(COLOUR_NONE) : Run black"
 	@echo -e "$(COLOUR_YELLOW)make isort$(COLOUR_NONE) : Run isort"

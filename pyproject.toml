@@ -13,6 +13,7 @@ gevent = "21.1.2"
 redis = "3.3.6"
 requests = "2.25.1"
 urllib3 = "1.26.5"
+boto3 = "^1.26.58"
 
 [tool.poetry.group.dev]
 optional = true
@@ -31,6 +32,7 @@ optional = true
 coverage = "5.5"
 pre-commit = "2.13.0"
 pylint = "2.3.1"
+mock = "^5.0.1"
 
 [build-system]
 requires = ["poetry-core"]

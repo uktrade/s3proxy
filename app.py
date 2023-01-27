@@ -1,5 +1,5 @@
-import gevent # type: ignore noqa
-from gevent import ( # type: ignore noqa
+import gevent  # type: ignore noqa
+from gevent import (  # type: ignore noqa
     monkey,
 )
 
@@ -25,7 +25,7 @@ import json
 import logging
 import hmac
 import hashlib
-from functools import ( # type: ignore
+from functools import (  # type: ignore
     wraps,
 )
 from datetime import (
@@ -41,32 +41,27 @@ def camel_to_pascal_case(input):
 
 
 def get_boto_s3client_args(
-        aws_access_key_id=None,
-        aws_secret_access_key=None,
-        aws_region=None):
+    aws_access_key_id=None, aws_secret_access_key=None, aws_region=None
+):
     """Extracted to a function to allow monkey-patching for test run"""
     boto_config = Config(
-        signature_version='v4',
-        retries={
-            'max_attempts': 10,
-            'mode': 'standard'
-        }
+        signature_version="v4", retries={"max_attempts": 10, "mode": "standard"}
     )
 
-    args = ('s3',)
+    args = ("s3",)
     kwargs = {
         "config": boto_config,
-
-        "aws_access_key_id":'AKIAIOSFODNN7EXAMPLE',
-        "aws_secret_access_key":'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+        "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
         # "aws_region":'us-east-1',
+        "endpoint_url": 'http://minio:9000', # @TODO make this for local dev only
     }
     if aws_access_key_id is not None:
-        kwargs['aws_access_key_id'] = aws_access_key_id
+        kwargs["aws_access_key_id"] = aws_access_key_id
     if aws_secret_access_key is not None:
-        kwargs['aws_secret_access_key'] = aws_secret_access_key
+        kwargs["aws_secret_access_key"] = aws_secret_access_key
     if aws_region is not None:
-        kwargs['region_name'] = aws_region
+        kwargs["region_name"] = aws_region
     return args, kwargs
 
 
@@ -80,12 +75,15 @@ def proxy_app(
     bucket,
     aws_region,
     healthcheck_key,
+    sso_url_internal,
     key_prefix=None,
     aws_access_key_id=None,
     aws_secret_access_key=None,
 ):
 
-    proxied_request_headers = ['range', ]
+    proxied_request_headers = [
+        "range",
+    ]
     proxied_response_headers = [
         "accept-ranges",
         "content-length",
@@ -104,7 +102,8 @@ def proxy_app(
         key_prefix = ""
 
     boto_args, boto_kwargs = get_boto_s3client_args(
-        aws_access_key_id, aws_secret_access_key, aws_region)
+        aws_access_key_id, aws_secret_access_key, aws_region
+    )
     s3 = boto3.client(*boto_args, **boto_kwargs)
 
     def start():
@@ -158,8 +157,7 @@ def proxy_app(
                     session_cookie_name,
                     session_id,
                     httponly=True,
-                    secure=request.headers.get(
-                        'x-forwarded-proto', 'http') == 'https',
+                    secure=request.headers.get("x-forwarded-proto", "http") == "https",
                     max_age=cookie_max_age,
                     expires=datetime.utcnow().timestamp() + cookie_max_age,
                 )
@@ -183,7 +181,7 @@ def proxy_app(
                 )
 
             def redirect_to_sso():
-                logger.debug("Redirecting to SSO")
+                logger.debug("Redirecting to SSO: {")
                 callback_uri = urllib.parse.quote(get_callback_uri(), safe="")
                 state = secrets.token_hex(32)
                 redis_set(
@@ -211,8 +209,7 @@ def proxy_app(
                     return Response(b"", 400)
 
                 try:
-                    final_uri = redis_get(
-                        f'{session_state_key_prefix}__{state}')
+                    final_uri = redis_get(f"{session_state_key_prefix}__{state}")
                 except KeyError:
                     logger.exception("Unable to find state in Redis")
                     return Response(
@@ -228,13 +225,12 @@ def proxy_app(
                     "client_secret": sso_client_secret,
                     "redirect_uri": get_callback_uri(),
                 }
-                with requests.post(f"{sso_url}{token_path}", data=data) as response:
+                with requests.post(f"{sso_url_internal}{token_path}", data=data) as response:
                     content = response.content
 
                 if response.status_code in [401, 403]:
-                    logger.debug('token_path response is %s',
-                                 response.status_code)
-                    return Response(b'', response.status_code)
+                    logger.debug("token_path response is %s", response.status_code)
+                    return Response(b"", response.status_code)
 
                 if response.status_code != 200:
                     logger.debug("token_path error")
@@ -249,7 +245,7 @@ def proxy_app(
 
             def get_token_code(token):
                 with requests.get(
-                    f"{sso_url}{me_path}", headers={"authorization": f"Bearer {token}"}
+                    f"{sso_url_internal}{me_path}", headers={"authorization": f"Bearer {token}"}
                 ) as response:
                     return response.status_code
 
@@ -288,15 +284,10 @@ def proxy_app(
             for _ in iter(streamingBody):
                 pass
 
-
-        request_kwargs = {
-            "Bucket": bucket,
-            "Key": key_prefix + path
-        }
+        request_kwargs = {"Bucket": bucket, "Key": key_prefix + path}
         for key in proxied_request_headers:
             if key in request.headers:
-                request_kwargs[camel_to_pascal_case(
-                    key)] = request.headers[key]
+                request_kwargs[camel_to_pascal_case(key)] = request.headers[key]
 
         try:
             s3_obj = s3.get_object(**request_kwargs)
@@ -309,22 +300,25 @@ def proxy_app(
         except:
             status_code = 500
 
-        logger.debug(f'Status code: {status_code}')
+        logger.debug(f"Status code: {status_code}")
 
         if status_code in (200, 206):
-            response_headers = tuple((
-                (key, s3_obj[camel_to_pascal_case(key)])
-                for key in proxied_response_headers
-                if camel_to_pascal_case(key) in s3_obj
-            ))
+            response_headers = tuple(
+                (
+                    (key, s3_obj[camel_to_pascal_case(key)])
+                    for key in proxied_response_headers
+                    if camel_to_pascal_case(key) in s3_obj
+                )
+            )
 
-            downstream_response = \
-                Response(body_upstream(s3_obj['Body']),
-                         status=status_code, headers=response_headers)
-            downstream_response.call_on_close(s3_obj['Body'].close)
+            downstream_response = Response(
+                body_upstream(s3_obj["Body"]),
+                status=status_code,
+                headers=response_headers,
+            )
+            downstream_response.call_on_close(s3_obj["Body"].close)
         else:
-            downstream_response = \
-                Response(body_empty([]), status=status_code)
+            downstream_response = Response(body_empty([]), status=status_code)
         return downstream_response
 
     def redis_get(key):
@@ -347,10 +341,9 @@ def proxy_app(
 
     app = Flask("app")
 
-    app.add_url_rule('/', view_func=proxy, defaults={'path': '/'})
-    app.add_url_rule('/<path:path>', view_func=proxy)
-    server = WSGIServer(('0.0.0.0', port), app,
-                        handler_class=RequestLinePathHandler)
+    app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
+    app.add_url_rule("/<path:path>", view_func=proxy)
+    server = WSGIServer(("0.0.0.0", port), app, handler_class=RequestLinePathHandler)
 
     return start, stop
 
@@ -364,18 +357,18 @@ def main():
 
     start, stop = proxy_app(
         logger,
-        int(os.environ['PORT']),
-        json.loads(os.environ['VCAP_SERVICES'])[
-            'redis'][0]['credentials']['uri'],
-        os.environ['SSO_URL'],
-        os.environ['SSO_CLIENT_ID'],
-        os.environ['SSO_CLIENT_SECRET'],
-        os.environ['AWS_S3_BUCKET'],
-        os.environ['AWS_DEFAULT_REGION'],
-        os.environ['AWS_S3_HEALTHCHECK_KEY'],
-        os.environ.get('KEY_PREFIX', None),
-        os.environ.get('AWS_ACCESS_KEY_ID', None),
-        os.environ.get('AWS_SECRET_ACCESS_KEY', None)
+        int(os.environ["PORT"]),
+        json.loads(os.environ["VCAP_SERVICES"])["redis"][0]["credentials"]["uri"],
+        os.environ["SSO_URL"],
+        os.environ["SSO_CLIENT_ID"],
+        os.environ["SSO_CLIENT_SECRET"],
+        os.environ["AWS_S3_BUCKET"],
+        os.environ["AWS_DEFAULT_REGION"],
+        os.environ["AWS_S3_HEALTHCHECK_KEY"],
+        os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
+        os.environ.get("KEY_PREFIX", None),
+        os.environ.get("AWS_ACCESS_KEY_ID", None),
+        os.environ.get("AWS_SECRET_ACCESS_KEY", None),
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)

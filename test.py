@@ -31,21 +31,21 @@ import requests
 
 # @TODO this patching doesnt seem to be working
 
-@patch('app.get_boto_s3client_args')
+
+@patch("app.get_boto_s3client_args")
 def get_boto_s3client_args_for_testing(_):
     args, kwargs = get_boto_s3client_args(
-        aws_access_key_id='AKIAIOSFODNN7EXAMPLE',
-        aws_secret_access_key='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-        aws_region='us-east-1',
-        )
-    kwargs['endpoint_url'] = 'https://127.0.0.1:9000'
-    kwargs['aws_session_token'] = None
-    kwargs['verify'] = False
+        aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
+        aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        aws_region="us-east-1",
+    )
+    kwargs["endpoint_url"] = "http://minio:9000"
+    kwargs["aws_session_token"] = None
+    kwargs["verify"] = False
     return args, kwargs
 
 
-class TestS3Proxy(unittest.TestCase):
-
+class TestS3ProxyE2E(unittest.TestCase):
     def test_meta_create_application_fails(self):
         wait_until_started, stop_application = create_application(max_attempts=1)
 
@@ -885,12 +885,11 @@ class TestS3Proxy(unittest.TestCase):
 
 def create_application(
     port=8080,
-
     max_attempts=500,
     aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
     healthcheck_key="heathcheck.txt",
-        prefix=None,
-    ):
+    prefix=None,
+):
 
     process = subprocess.Popen(
         [
@@ -901,21 +900,21 @@ def create_application(
         stdout=subprocess.PIPE,
         env={
             **os.environ,
-            'PORT': str(port),
-            'VCAP_SERVICES': json.dumps({
-                'redis': [{'credentials': {'uri': 'redis://redis:6379/0'}}]}),
-            'SSO_URL': 'http://127.0.0.1:8081/',
-            'SSO_CLIENT_ID': 'the-client-id',
-            'SSO_CLIENT_SECRET': 'the-client-secret',
-            'AWS_S3_BUCKET': 'my-bucket',
-            'AWS_DEFAULT_REGION': 'us-east-1',
-            'AWS_S3_HEALTHCHECK_KEY': healthcheck_key,
+            "PORT": str(port),
+            "VCAP_SERVICES": json.dumps(
+                {"redis": [{"credentials": {"uri": "redis://redis:6379/0"}}]}
+            ),
+            "SSO_URL": "http://127.0.0.1:8081/",
+            "SSO_CLIENT_ID": "the-client-id",
+            "SSO_CLIENT_SECRET": "the-client-secret",
+            "AWS_S3_BUCKET": "my-bucket",
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_S3_HEALTHCHECK_KEY": healthcheck_key,
             # 'KEY_PREFIX': prefix, @TODO
-            'AWS_ACCESS_KEY_ID': aws_access_key_id,
-            'AWS_SECRET_ACCESS_KEY': 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-        }
+            "AWS_ACCESS_KEY_ID": aws_access_key_id,
+            "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        },
     )
-
 
     def wait_until_started():
         for i in range(0, max_attempts):
@@ -942,8 +941,8 @@ def put_object(key, contents):
     s3 = boto3.client(*boto_args, **boto_kwargs)
     # print (contents)
     # print(type(contents))
-    response = s3.put_object(
-        Key=key, Bucket='my-bucket', Body=contents.decode())
+    response = s3.put_object(Key=key, Bucket="my-bucket", Body=contents.decode())
+    s3.close()
     # s3.upload_fileobj(contents, 'my-bucket', key)
 
     # url = f'http://127.0.0.1:9000/my-bucket/{key}'

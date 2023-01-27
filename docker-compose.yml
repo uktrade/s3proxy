@@ -33,20 +33,48 @@ services:
     depends_on:
       - redis
       - minio
+      - sso
     restart: unless-stopped
     stdin_open: true
     tty: true
 
   # used for dev and testing only; Minio is an S3 clone
   minio:
-    image:  minio/minio:RELEASE.2019-08-01T22-18-54Z
+    image: minio/minio
     networks:
+      - default
       - inside
     ports:
       - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_storage:/data
     environment:
-      - "MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE"
-      - "MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+      - "MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE"
+      - "MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
       - "MINIO_REGION=us-east-1"
-    entrypoint: ['sh']
-    command: ['-c', 'mkdir -p /data/my-bucket && minio server /data']
+    entrypoint: [ 'sh' ]
+    command:
+      [
+        '-c',
+        'mkdir -p /data/my-bucket && minio server --console-address ":9001" /data'
+      ]
+
+  # used for dev and test; mocks SSO auth
+  sso:
+    build:
+      context: .
+      dockerfile: "docker/Dockerfile.sso"
+    networks:
+      - default
+      - inside
+    environment:
+      - PORT=8081
+    command: "poetry run python -m sso_server"
+    ports:
+      - "8081:8081"
+    stdin_open: true
+    tty: true
+
+volumes:
+  minio_storage: {}

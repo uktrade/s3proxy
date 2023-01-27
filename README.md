@@ -3,7 +3,9 @@
 > An OAuth-authenticated streaming proxy to S3
 
 
-## Required environment variables
+## Environment variables
+
+### Required
 
 | Variable                 | Description                                                                                                           | Example                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -21,7 +23,7 @@ The below environment variables are also required, but typically populated by Pa
 | `PORT`          | The port for the application to listen on                        | `8080`                                                                        |
 | `VCAP SERVICES` | A JSON-encoded dictionary containing the URI to a redis instance | `{"redis": [{"credentials": {"uri": "redis://my-redis.domain.com:6379/0"}}]}` |
 
-## Optional environment variables
+### Optional
 
 AWS authentication to access the buckets may be provided via keys made available as environment variables. If they are present, they will be used.
 
@@ -34,38 +36,51 @@ If this service is running on an AWS instance with a relevant IAM Role applied t
 | `AWS_ACCESS_KEY_ID`     | The AWS access key ID that has GetObject, and optionally ListBucket, permissions   | _not shown_ |
 | `AWS_SECRET_ACCESS_KEY` | The secret part of the AWS access key                                              | _not shown_ |
 | `KEY_PREFIX`            | A folder-like prefix to be prepended to all object keys. No slashes should be used | `my-folder` |
+| `SSO_URL_INTERNAL`            | A URL for the app to use when connecting directly tot he SSO server. Defaults to `SSO_URL` if not specified. Mainly useful for dev. | `https://sso.domain.com/` |
 
-## Permissions and 404s
+## Notes on functionality
+
+### Permissions and 404s
 
 If the AWS user/role has the ListBucket permission, 404s are proxied through to the user to aid debugging.
 
-## Shutdown
+### Shutdown
 
 On SIGTERM any in-progress requests will complete before the process exits. At the time of writing PaaS will then forcibly kill the process with SIGKILL if it has not exited within 10 seconds.
 
-## Range requests
+### Range requests
 
 The headers `range`, `content-range` and `accept-ranges` and proxied to allow range requests. This means that video should be able to be proxied with reasonable seeking behaviour.
 
-## Parallel flows with new sessions
+### Parallel flows with new sessions
 
 Parallel requests for users that have no existing cookies are supported
 
-## Key-limitation
+### Key-limitation
 
 The path `/__redirect_from_sso` is used as part of SSO authentication. This corresponds to the key `__redirect_from_sso`, and so the object with this key cannot be proxied.
 
 ## Running locally
 
-Ensure you have a docker daemon running and available.
+Ensure you have a docker daemon running and available. Note that by default your local environment will be self-contained; update your local ENV vars to override this behaviour.
 
 * Copy the example env file cp .env.example .env
-* Configure env vars (talk to SRE for values) - or use as-is, connecting to the local minio container instead of S3
+* Configure env vars (talk to SRE for values) - or use as-is, connecting to the local minio container instead of S3 and a local SSO mock instead of a live one
 * Build local docker instance:
   * `make build`
 * Start the local docker instance:
   * `make up`
 * Open a browser at http://localhost:8000/<object_key>
+* Edit your code locally as normal
+
+### Adding dependencies
+
+* Run `make bash` to open a console to a new container witht he app code.
+* Use poetry commands to add your dependeny - e.g. `poetry add boto3` - verify that your `pyproject.toml` file is updated
+* Run `poetry install` on your group if necessary, to generate the local `poetry.lock` file
+* `exit` your bash console, shutting down the temporary container
+* `make build` to generate a new docker image containing the updated deps - this is because the poetry install command is in the Dockerfile
+* `make up` to continue working in a full environment containing your new dependencies
 
 ## Running tests
 
