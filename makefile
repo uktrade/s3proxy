@@ -42,15 +42,13 @@ run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
 flake8:
-	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"
-#	$(poetry) run flake8 $(file)
+	$(poetry) run flake8 $(file)
 
 black:
 	$(poetry) run black .
 
 isort:
-	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"
-#	$(poetry) run isort .
+	$(poetry) run isort .
 
 format: black isort
 
