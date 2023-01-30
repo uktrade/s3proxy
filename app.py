@@ -368,7 +368,7 @@ def main():
     logger.addHandler(stdout_handler)
 
     s3_use_local = os.environ.get("S3_USE_LOCAL", False)
-    if s3_use_local is not False and s3_use_local not in [0, "0", "false", "False"]:
+    if s3_use_local and s3_use_local not in [0, "0", "false", "False"]:
         s3_use_local = True
 
     start, stop = proxy_app(
