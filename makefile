@@ -31,7 +31,7 @@ help:
 build:
 	docker-compose build
 
-up:
+up: down
 	docker-compose up
 
 reload:
@@ -71,8 +71,11 @@ bash:
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
 
-test:
-	$(poetry) run python -m unittest -v -b $(test)
+# internal use to allow `test` command to have other dependencies
+runtests:
+	docker-compose -f docker-compose.test.yml run --rm s3proxy poetry --quiet run python -m unittest -v -b $(test)
+
+test: down runtests down
 
 view-coverage:
 	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"

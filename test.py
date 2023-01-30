@@ -24,20 +24,6 @@ from flask import (
 import redis
 import requests
 
-# @TODO this patching doesnt seem to be working
-# @patch("app.get_boto_s3client_args")
-# def get_boto_s3client_args_for_testing(_):
-#     args, kwargs = get_boto_s3client_args(
-#         aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-#         aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-#         aws_region="us-east-1",
-#     )
-#     kwargs["endpoint_url"] = "http://minio:9000"
-#     kwargs["aws_session_token"] = None
-#     kwargs["verify"] = False
-#     return args, kwargs
-
-
 class TestS3ProxyE2E(unittest.TestCase):
     def test_meta_create_application_fails(self):
         wait_until_started, stop_application = create_application(max_attempts=1)
@@ -55,7 +41,7 @@ class TestS3ProxyE2E(unittest.TestCase):
 
         stop_sso()
 
-    def test_key_that_exists(self):
+    def test_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -74,7 +60,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(response.headers["content-length"], str(len(content)))
             self.assertEqual(len(response.history), 3)
 
-    def test_parallel_requests_same_session_with_key_that_exists(self):
+    def test_parallel_requests_same_session_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -121,7 +107,7 @@ class TestS3ProxyE2E(unittest.TestCase):
                 self.assertEqual(resp_2_4.content, content)
                 self.assertEqual(resp_2_4.headers["content-length"], str(len(content)))
 
-    def test_parallel_requests_new_session_on_redirection_endpoint_with_key_that_exists(
+    def test_parallel_requests_new_session_on_redirection_endpoint_with_existing_objectkey(
         self,
     ):
         wait_until_started, stop_application = create_application()
@@ -171,7 +157,7 @@ class TestS3ProxyE2E(unittest.TestCase):
                 self.assertEqual(resp_2_4.content, content)
                 self.assertEqual(resp_2_4.headers["content-length"], str(len(content)))
 
-    def test_no_trailing_question_mark_with_key_that_exists(self):
+    def test_no_trailing_question_mark_with_existing_objectkey(self):
         # Ensure that the server does not redirect to a URL with a trailing
         # question mark. A raw socket request is make to have access to the
         # raw bytes of the response, which are hidden if using Python requests
@@ -218,7 +204,7 @@ class TestS3ProxyE2E(unittest.TestCase):
 
             self.assertIn(f"location: http://localhost:8080/{key}\r\n", resp_4.decode())
 
-    def test_with_trailing_question_mark_with_key_that_exists(self):
+    def test_with_trailing_question_mark_with_existing_objectkey(self):
         # Ensure that the server preserves trailing question marks through
         # redirects. Python requests can strip this, so we use raw socket
         # requests
@@ -264,7 +250,7 @@ class TestS3ProxyE2E(unittest.TestCase):
 
         self.assertIn(f"location: http://localhost:8080/{key}?\r\n", resp_4.decode())
 
-    def test_no_session_302_with_key_that_exists(self):
+    def test_no_session_302_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -287,7 +273,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(resp_3.content, b"")
             self.assertEqual(resp_3.status_code, 302)
 
-    def test_second_request_succeeds_no_redirect_with_key_that_exists(self):
+    def test_second_request_succeeds_no_redirect_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -309,7 +295,7 @@ class TestS3ProxyE2E(unittest.TestCase):
                 self.assertEqual(response.headers["content-length"], str(len(content)))
                 self.assertEqual(len(response.history), 0)
 
-    def test_redis_cleared_then_succeeds_with_key_that_exists(self):
+    def test_redis_cleared_then_succeeds_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -338,7 +324,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(response.headers["content-length"], str(len(content)))
             self.assertEqual(len(response.history), 3)
 
-    def test_redis_cleared_on_redirection_shows_message_with_key_that_exists(self):
+    def test_redis_cleared_on_redirection_shows_message_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -368,7 +354,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertIn(b"Please try the original link again.", resp_3.content)
             self.assertEqual(resp_3.status_code, 403)
 
-    def test_x_forwarded_proto_respected_with_key_that_exists(self):
+    def test_x_forwarded_proto_respected_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -388,7 +374,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             with requests.Session() as session:
                 session.get(f"http://localhost:8080/{key}", headers=headers).__enter__()
 
-    def test_me_response_500_is_500_with_key_that_exists(self):
+    def test_me_response_500_is_500_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -406,7 +392,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(response.status_code, 500)
             self.assertEqual(response.content, b"")
 
-    def test_no_sso_started_returns_500_with_key_that_exists(self):
+    def test_no_sso_started_returns_500_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -429,7 +415,7 @@ class TestS3ProxyE2E(unittest.TestCase):
                 self.assertEqual(response_2.status_code, 500)
                 self.assertNotIn(content, response_2.content)
 
-    def test_bad_code_perms_returns_403_with_key_that_exists(self):
+    def test_bad_code_perms_returns_403_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -447,7 +433,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(response.content, b"")
             self.assertEqual(response.status_code, 403)
 
-    def test_bad_secret_returns_403_with_key_that_exists(self):
+    def test_bad_secret_returns_403_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -465,7 +451,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(response.status_code, 403)
             self.assertEqual(response.content, b"")
 
-    def test_bad_token_perms_redirects_again_to_success_with_key_that_exists(self):
+    def test_bad_token_perms_redirects_again_to_success_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -486,7 +472,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             self.assertEqual(response.content, content)
             self.assertEqual(len(response.history), 6)
 
-    def test_sso_token_returns_500_returns_500_with_key_that_exists(self):
+    def test_sso_token_500_returns_500_with_existing_objectkey(self):
         # Make sure we don't get into infinite redirect
 
         wait_until_started, stop_application = create_application()
@@ -503,10 +489,11 @@ class TestS3ProxyE2E(unittest.TestCase):
         with requests.Session() as session, session.get(
             f"http://localhost:8080/{key}"
         ) as response:
+            # print(response.history)
             self.assertEqual(response.status_code, 500)
             self.assertEqual(response.content, b"")
 
-    def test_not_logged_in_shows_login_with_key_that_exists(self):
+    def test_not_logged_in_shows_login_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         wait_until_started()
@@ -585,7 +572,7 @@ class TestS3ProxyE2E(unittest.TestCase):
         self.assertGreater(num_both, 1000)
         self.assertLess(num_single, 100)
 
-    def test_during_shutdown_completes_with_key_that_exists(self):
+    def test_during_shutdown_completes_with_existing_objectkey(self):
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
         process = wait_until_started()
@@ -612,7 +599,7 @@ class TestS3ProxyE2E(unittest.TestCase):
 
         self.assertEqual(b"".join(chunks), content)
 
-    def test_after_multiple_sigterm_completes_with_key_that_exists(self):
+    def test_after_multiple_sigterm_completes_with_existing_objectkey(self):
         # PaaS can apparently send multiple sigterms
         wait_until_started, stop_application = create_application()
         self.addCleanup(stop_application)
@@ -642,7 +629,7 @@ class TestS3ProxyE2E(unittest.TestCase):
 
         self.assertEqual(b"".join(chunks), content)
 
-    def test_during_shutdown_completes_but_new_connection_rejected_with_key_that_exists(
+    def test_during_shutdown_completes_but_new_connection_rejected_with_existing_objectkey(
         self,
     ):
         wait_until_started, stop_application = create_application()
@@ -674,7 +661,7 @@ class TestS3ProxyE2E(unittest.TestCase):
 
         self.assertEqual(b"".join(chunks), content)
 
-    def test_during_shutdown_completes_but_request_on_old_conn_with_key_that_exists(self):
+    def test_during_shutdown_completes_but_request_on_old_conn_with_existing_objectkey(self):
         # Check that connections that were open before the SIGTERM still work
         # after. Unsure if this is desired on PaaS, so this is more of
         # documenting current behaviour

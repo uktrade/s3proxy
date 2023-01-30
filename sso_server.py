@@ -42,7 +42,7 @@ def create_sso(
     is_logged_in=True,
     client_id="the-client-id",
     client_secret="the-client-secret",
-    tokens_returned=None,
+    tokens_returned=None, # None => infinite (see below), override for other behaviours
     token_expected="the-token",
     code_returned="the-code",
     code_expected="the-code",
@@ -140,7 +140,6 @@ def create_sso(
             return next(token_iter)
 
     def handle_token():
-        logger.debug("Handle token function called")
         correct = (
             request.form["code"] == code_expected
             and request.form["client_id"] == client_id
