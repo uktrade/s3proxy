@@ -69,8 +69,6 @@ def get_boto_s3client_args(
     if aws_region is not None:
         kwargs["region_name"] = aws_region
 
-    print(f"boto3 connection settings: {kwargs}")
-
     return args, kwargs
 
 

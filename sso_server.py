@@ -42,13 +42,13 @@ def create_sso(
     is_logged_in=True,
     client_id="the-client-id",
     client_secret="the-client-secret",
-    # tokens_returned=("the-token",),
+    tokens_returned=None,
     token_expected="the-token",
     code_returned="the-code",
     code_expected="the-code",
     me_response_code=200,
 ):
-    # Mock SSO in a different process to not block tests
+    # Mock SSO in a different container using defn written in test file, to allow easy local debugging
 
     def start():
         app = Flask("app")
@@ -119,15 +119,25 @@ def create_sso(
             else Response(b"The login page", status=200)
         )
 
-    # token_iter = iter(tokens_returned)
+    # unlimited supply of valid tokens by default
+    class Tokens:
+        def __iter__(self):
+            return self
+        def __next__(self):
+            return "the-token"
+
+    if tokens_returned is None:
+        tokens_returned = Tokens()
+
+    token_iter = iter(tokens_returned)
 
     def next_token():
-        # nonlocal token_iter
+        nonlocal token_iter
         try:
-            return "the-token"
+            return next(token_iter)
         except StopIteration:
-            # iter(tokens_returned)
-            return "the-token"
+            iter(tokens_returned)
+            return next(token_iter)
 
     def handle_token():
         logger.debug("Handle token function called")
