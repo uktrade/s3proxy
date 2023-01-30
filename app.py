@@ -1,9 +1,9 @@
-import gevent  # type: ignore noqa
-from gevent import (  # type: ignore noqa
+import gevent  # noqa
+from gevent import (  # noqa
     monkey,
 )
 
-monkey.patch_all()  # noqa type: ignore
+monkey.patch_all()  # noqa
 
 import requests
 import redis
@@ -23,7 +23,7 @@ import secrets
 import os
 import json
 import logging
-from functools import (  # type: ignore
+from functools import (
     wraps,
 )
 from datetime import (
@@ -31,10 +31,10 @@ from datetime import (
 )
 
 # suppress very verbose boto3 logging
-# logging.getLogger("boto3").setLevel(logging.CRITICAL)
-# logging.getLogger("botocore").setLevel(logging.CRITICAL)
-# logging.getLogger("s3transfer").setLevel(logging.CRITICAL)
-# logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+logging.getLogger("boto3").setLevel(logging.CRITICAL)
+logging.getLogger("botocore").setLevel(logging.CRITICAL)
+logging.getLogger("s3transfer").setLevel(logging.CRITICAL)
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
 import boto3
 from botocore.config import Config
@@ -305,6 +305,7 @@ def proxy_app(
                 request_kwargs[camel_to_pascal_case(key)] = request.headers[key]
 
         try:
+            # logger.debug(f"Getting S3 obj with boto kwargs: {request_kwargs}")
             s3_obj = s3.get_object(**request_kwargs)
             status_code = s3_obj["ResponseMetadata"]["HTTPStatusCode"]
         except s3.exceptions.NoSuchKey as e:

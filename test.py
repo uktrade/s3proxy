@@ -1,7 +1,6 @@
 from app import get_boto_s3client_args
 import boto3
 import json
-from mock import patch
 from multiprocessing import (
     Process,
 )
@@ -23,6 +22,7 @@ from flask import (
 )
 import redis
 import requests
+
 
 class TestS3ProxyE2E(unittest.TestCase):
     def test_meta_create_application_fails(self):
@@ -52,6 +52,26 @@ class TestS3ProxyE2E(unittest.TestCase):
         key = str(uuid.uuid4()) + "/" + str(uuid.uuid4())
         content = str(uuid.uuid4()).encode() * 100000
         put_object(key, content)
+
+        with requests.Session() as session, session.get(
+            f"http://localhost:8080/{key}"
+        ) as response:
+            self.assertEqual(response.content, content)
+            self.assertEqual(response.headers["content-length"], str(len(content)))
+            self.assertEqual(len(response.history), 3)
+
+    def test_existing_objectkey_with_prefix(self):
+        prefix = "my-folder"
+        wait_until_started, stop_application = create_application(prefix=prefix)
+        self.addCleanup(stop_application)
+        wait_until_started()
+        wait_until_sso_started, stop_sso = create_sso()
+        self.addCleanup(stop_sso)
+        wait_until_sso_started()
+
+        key = str(uuid.uuid4()) + "/" + str(uuid.uuid4())
+        content = str(uuid.uuid4()).encode() * 100000
+        put_object(prefix + "/" + key, content)
 
         with requests.Session() as session, session.get(
             f"http://localhost:8080/{key}"
@@ -661,7 +681,9 @@ class TestS3ProxyE2E(unittest.TestCase):
 
         self.assertEqual(b"".join(chunks), content)
 
-    def test_during_shutdown_completes_but_request_on_old_conn_with_existing_objectkey(self):
+    def test_during_shutdown_completes_but_request_on_old_conn_with_existing_objectkey(
+        self,
+    ):
         # Check that connections that were open before the SIGTERM still work
         # after. Unsure if this is desired on PaaS, so this is more of
         # documenting current behaviour
@@ -870,6 +892,8 @@ def create_application(
     healthcheck_key="heathcheck.txt",
     prefix=None,
 ):
+    if prefix is None:
+        prefix = ""
 
     process = subprocess.Popen(
         [
@@ -890,9 +914,11 @@ def create_application(
             "AWS_S3_BUCKET": "my-bucket",
             "AWS_DEFAULT_REGION": "us-east-1",
             "AWS_S3_HEALTHCHECK_KEY": healthcheck_key,
-            # 'KEY_PREFIX': prefix, @TODO
+            'KEY_PREFIX': prefix,
             "AWS_ACCESS_KEY_ID": aws_access_key_id,
             "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "S3_USE_LOCAL": "1",
+            "S3_ENDPOINT_URL": "http://minio:9000"
         },
     )
 
@@ -922,6 +948,7 @@ def put_object(key, contents):
     )
     s3 = boto3.client(*boto_args, **boto_kwargs)
     response = s3.put_object(Key=key, Bucket="my-bucket", Body=contents.decode())
+    print (key)
 
     s3.close()
 

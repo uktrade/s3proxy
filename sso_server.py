@@ -1,8 +1,9 @@
-import gevent  # type: ignore noqa
-from gevent import (  # type: ignore noqa
+import gevent  # type: ignore # noqa
+from gevent import (  # type: ignore # noqa
     monkey,
 )
-monkey.patch_all()  # noqa type: ignore
+
+monkey.patch_all()  # noqa # type: ignore
 
 from datetime import (
     datetime,
@@ -42,7 +43,7 @@ def create_sso(
     is_logged_in=True,
     client_id="the-client-id",
     client_secret="the-client-secret",
-    tokens_returned=None, # None => infinite (see below), override for other behaviours
+    tokens_returned=None,  # None => infinite (see below), override for other behaviours
     token_expected="the-token",
     code_returned="the-code",
     code_expected="the-code",
@@ -52,21 +53,9 @@ def create_sso(
 
     def start():
         app = Flask("app")
-        app.add_url_rule(
-            "/api/v1/user/me/",
-            view_func=handle_me,
-            methods=["GET"]
-        )
-        app.add_url_rule(
-            "/o/authorize/",
-            view_func=handle_authorize,
-            methods=["GET"]
-        )
-        app.add_url_rule(
-            "/o/token/",
-            view_func=handle_token,
-            methods=["POST"]
-        )
+        app.add_url_rule("/api/v1/user/me/", view_func=handle_me, methods=["GET"])
+        app.add_url_rule("/o/authorize/", view_func=handle_authorize, methods=["GET"])
+        app.add_url_rule("/o/token/", view_func=handle_token, methods=["POST"])
 
         def _stop(_, __):
             sys.exit()
@@ -83,7 +72,9 @@ def create_sso(
     def wait_until_connected():
         for i in range(0, max_attempts):
             try:
-                with socket.create_connection(("0.0.0.0", int(os.environ["PORT"])), timeout=0.1):
+                with socket.create_connection(
+                    ("0.0.0.0", int(os.environ["PORT"])), timeout=0.1
+                ):
                     break
             except (OSError, ConnectionRefusedError):
                 if i == max_attempts - 1:
@@ -123,6 +114,7 @@ def create_sso(
     class Tokens:
         def __iter__(self):
             return self
+
         def __next__(self):
             return "the-token"
 
