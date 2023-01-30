@@ -305,7 +305,6 @@ def proxy_app(
                 request_kwargs[camel_to_pascal_case(key)] = request.headers[key]
 
         try:
-            # logger.debug(f"Getting S3 obj with boto kwargs: {request_kwargs}")
             s3_obj = s3.get_object(**request_kwargs)
             status_code = s3_obj["ResponseMetadata"]["HTTPStatusCode"]
         except s3.exceptions.NoSuchKey as e:
