@@ -1,10 +1,5 @@
 from app import get_boto_s3client_args
 import boto3
-from datetime import (
-    datetime,
-)
-import hashlib
-import hmac
 import json
 from mock import patch
 from multiprocessing import (
@@ -30,19 +25,17 @@ import redis
 import requests
 
 # @TODO this patching doesnt seem to be working
-
-
-@patch("app.get_boto_s3client_args")
-def get_boto_s3client_args_for_testing(_):
-    args, kwargs = get_boto_s3client_args(
-        aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-        aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-        aws_region="us-east-1",
-    )
-    kwargs["endpoint_url"] = "http://minio:9000"
-    kwargs["aws_session_token"] = None
-    kwargs["verify"] = False
-    return args, kwargs
+# @patch("app.get_boto_s3client_args")
+# def get_boto_s3client_args_for_testing(_):
+#     args, kwargs = get_boto_s3client_args(
+#         aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
+#         aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+#         aws_region="us-east-1",
+#     )
+#     kwargs["endpoint_url"] = "http://minio:9000"
+#     kwargs["aws_session_token"] = None
+#     kwargs["verify"] = False
+#     return args, kwargs
 
 
 class TestS3ProxyE2E(unittest.TestCase):
@@ -862,7 +855,7 @@ class TestS3ProxyE2E(unittest.TestCase):
             url = resp.headers["location"]
 
         self.assertEqual(status_code, 302)
-        self.assertTrue(url.startswith("http://127.0.0.1:8081/o/authorize/"))
+        self.assertTrue(url.startswith("http://localhost:8081/o/authorize/"))
 
     def test_healthcheck(self):
         healthcheck_key = str(uuid.uuid4())
@@ -904,7 +897,7 @@ def create_application(
             "VCAP_SERVICES": json.dumps(
                 {"redis": [{"credentials": {"uri": "redis://redis:6379/0"}}]}
             ),
-            "SSO_URL": "http://127.0.0.1:8081/",
+            "SSO_URL": "http://localhost:8081/",
             "SSO_CLIENT_ID": "the-client-id",
             "SSO_CLIENT_SECRET": "the-client-secret",
             "AWS_S3_BUCKET": "my-bucket",
@@ -937,80 +930,13 @@ def create_application(
 
 
 def put_object(key, contents):
-    boto_args, boto_kwargs = get_boto_s3client_args_for_testing()
+    boto_args, boto_kwargs = get_boto_s3client_args(
+        use_local=True, endpoint="http://minio:9000"
+    )
     s3 = boto3.client(*boto_args, **boto_kwargs)
-    # print (contents)
-    # print(type(contents))
     response = s3.put_object(Key=key, Bucket="my-bucket", Body=contents.decode())
+
     s3.close()
-    # s3.upload_fileobj(contents, 'my-bucket', key)
-
-    # url = f'http://127.0.0.1:9000/my-bucket/{key}'
-    # body_hash = hashlib.sha256(contents).hexdigest()
-    # parsed_url = urllib.parse.urlsplit(url)
-    # print("@TODO")
-    # headers = aws_sigv4_headers(
-    #     'AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-    #     (), 's3', 'us-east-1', parsed_url.netloc, 'PUT', parsed_url.path, (), body_hash,
-    # )
-    # with requests.put(url, data=contents, headers=dict(headers)) as response:
-    #     response.raise_for_status()
-
-
-# def aws_sigv4_headers(access_key_id, secret_access_key, pre_auth_headers,
-#                       service, region, host, method, path, params, body_hash):
-#     algorithm = 'AWS4-HMAC-SHA256'
-
-#     now = datetime.utcnow()
-#     amzdate = now.strftime('%Y%m%dT%H%M%SZ')
-#     datestamp = now.strftime('%Y%m%d')
-#     credential_scope = f'{datestamp}/{region}/{service}/aws4_request'
-
-#     pre_auth_headers_lower = tuple((
-#         (header_key.lower(), ' '.join(header_value.split()))
-#         for header_key, header_value in pre_auth_headers
-#     ))
-#     required_headers = (
-#         ('host', host),
-#         ('x-amz-content-sha256', body_hash),
-#         ('x-amz-date', amzdate),
-#     )
-#     headers = sorted(pre_auth_headers_lower + required_headers)
-#     signed_headers = ';'.join(key for key, _ in headers)
-
-#     def signature():
-#         def canonical_request():
-#             canonical_uri = urllib.parse.quote(path, safe='/~')
-#             quoted_params = sorted(
-#                 (urllib.parse.quote(key, safe='~'), urllib.parse.quote(value, safe='~'))
-#                 for key, value in params
-#             )
-#             canonical_querystring = '&'.join(f'{key}={value}' for key, value in quoted_params)
-#             canonical_headers = ''.join(f'{key}:{value}\n' for key, value in headers)
-
-#             return f'{method}\n{canonical_uri}\n{canonical_querystring}\n' + \
-#                    f'{canonical_headers}\n{signed_headers}\n{body_hash}'
-
-#         def sign(key, msg):
-#             return hmac.new(key, msg.encode('ascii'), hashlib.sha256).digest()
-
-#         string_to_sign = f'{algorithm}\n{amzdate}\n{credential_scope}\n' + \
-#                          hashlib.sha256(canonical_request().encode('ascii')).hexdigest()
-
-#         date_key = sign(('AWS4' + secret_access_key).encode('ascii'), datestamp)
-#         region_key = sign(date_key, region)
-#         service_key = sign(region_key, service)
-#         request_key = sign(service_key, 'aws4_request')
-#         return sign(request_key, string_to_sign).hex()
-
-#     return (
-#         (b'authorization', (
-#             f'{algorithm} Credential={access_key_id}/{credential_scope}, '
-#             f'SignedHeaders={signed_headers}, Signature=' + signature()).encode('ascii')
-#          ),
-#         (b'x-amz-date', amzdate.encode('ascii')),
-#         (b'x-amz-content-sha256', body_hash.encode('ascii')),
-#     ) + pre_auth_headers
 
 
 def create_sso(

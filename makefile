@@ -12,6 +12,8 @@ help:
 	@echo -e "$(COLOUR_GREEN)|--- $(APPLICATION_NAME) ---|$(COLOUR_NONE)"
 	@echo -e "$(COLOUR_YELLOW)make build$(COLOUR_NONE) : Run docker-compose build"
 	@echo -e "$(COLOUR_YELLOW)make up$(COLOUR_NONE) : Run docker-compose up"
+	@echo -e "$(COLOUR_YELLOW)make reload$(COLOUR_NONE) : Run docker-compose restart s3proxy"
+	@echo -e "$(COLOUR_YELLOW)make rebuild$(COLOUR_NONE) : Run docker-compose up --detach --build"
 	@echo -e "$(COLOUR_YELLOW)make up-detached$(COLOUR_NONE) : Run docker-compose up in detached mode (useful for CI)"
 	@echo -e "$(COLOUR_YELLOW)make down$(COLOUR_NONE) : Run docker-compose down"
 	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on the application container"
@@ -31,6 +33,12 @@ build:
 
 up:
 	docker-compose up
+
+reload:
+	docker-compose restart s3proxy
+
+rebuild:
+	docker-compose up --detach --build
 
 up-detached:
 	docker-compose up -d

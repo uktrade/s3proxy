@@ -36,7 +36,15 @@ If this service is running on an AWS instance with a relevant IAM Role applied t
 | `AWS_ACCESS_KEY_ID`     | The AWS access key ID that has GetObject, and optionally ListBucket, permissions   | _not shown_ |
 | `AWS_SECRET_ACCESS_KEY` | The secret part of the AWS access key                                              | _not shown_ |
 | `KEY_PREFIX`            | A folder-like prefix to be prepended to all object keys. No slashes should be used | `my-folder` |
-| `SSO_URL_INTERNAL`            | A URL for the app to use when connecting directly tot he SSO server. Defaults to `SSO_URL` if not specified. Mainly useful for dev. | `https://sso.domain.com/` |
+| `SSO_URL_INTERNAL`            | A URL for the app to use when connecting directly to the SSO server. Defaults to `SSO_URL` if not specified. Mainly useful for dev. | `https://sso.domain.com/` |
+
+The following optional ENV vars are used to control and configure use of the Minio and SSO mock containers; useful in dev if you don't want to (or can't) connect to live services from a local machine.
+
+| Variable                | Description                                                                        | Example     |
+| ----------------------- | ---------------------------------------------------------------------------------- | ----------- |
+| `S3_USE_LOCAL`            | A boolean that sets boto3 config in the main app to connect to Minio using an endpoint rather than default S3 endpoint generation. Defaults to `False`. | `True` |
+| `S3_ENDPOINT_URL`            | An endpoint URL (including schema and port) for the app to use when connecting to the local Minio server. Only inspected if `S3_USE_LOCAL` is `True`. | `http://minio:9000` |
+| `SSO_URL_INTERNAL`            | A URL for the app to use when connecting directly to the SSO server. Defaults to `SSO_URL` if not specified. | `http://sso:8001/` |
 
 ## Notes on functionality
 
@@ -73,6 +81,8 @@ Ensure you have a docker daemon running and available. Note that by default your
 * Open a browser at http://localhost:8000/<object_key>
 * Edit your code locally as normal
 
+> Please note that the SSO mock is very limited in the way that it behaves. It may be useful while developing or debugging other functionality, but don't rely on it behaving as a real SSO service would.
+
 ### Adding dependencies
 
 * Run `make bash` to open a console to a new container witht he app code.
@@ -81,9 +91,12 @@ Ensure you have a docker daemon running and available. Note that by default your
 * `exit` your bash console, shutting down the temporary container
 * `make build` to generate a new docker image containing the updated deps - this is because the poetry install command is in the Dockerfile
 * `make up` to continue working in a full environment containing your new dependencies
+* `make reload` after changing your `app.py` file to reload the app container without running a docker build, or `make rebuild` if you need your changes to be built
 
 ## Running tests
 
 Ensure you have a docker daemon running and available, and that you have installed the `testing` dependencies via poetry.
 
 Once you have the docker containers running locally (see above) simply `make test`
+
+> Note that some tests require specific responses from the SSO mock; you're best to start with a freshly run sso container rather than one that's run tests already or you'll get FAIL or ERROR responses unexpectedly.

@@ -23,14 +23,19 @@ import secrets
 import os
 import json
 import logging
-import hmac
-import hashlib
 from functools import (  # type: ignore
     wraps,
 )
 from datetime import (
     datetime,
 )
+
+# suppress very verbose boto3 logging
+# logging.getLogger("boto3").setLevel(logging.CRITICAL)
+# logging.getLogger("botocore").setLevel(logging.CRITICAL)
+# logging.getLogger("s3transfer").setLevel(logging.CRITICAL)
+# logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
 import boto3
 from botocore.config import Config
 
@@ -41,27 +46,31 @@ def camel_to_pascal_case(input):
 
 
 def get_boto_s3client_args(
-    aws_access_key_id=None, aws_secret_access_key=None, aws_region=None
+    aws_access_key_id=None,
+    aws_secret_access_key=None,
+    aws_region=None,
+    use_local=None,
+    endpoint=None,
 ):
     """Extracted to a function to allow monkey-patching for test run"""
-    boto_config = Config(
-        signature_version="v4", retries={"max_attempts": 10, "mode": "standard"}
-    )
-
     args = ("s3",)
     kwargs = {
-        "config": boto_config,
-        "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
-        "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-        # "aws_region":'us-east-1',
-        "endpoint_url": 'http://minio:9000', # @TODO make this for local dev only
+        "config": Config(
+            signature_version="v4", retries={"max_attempts": 10, "mode": "standard"}
+        ),
     }
+
+    if use_local is True:
+        kwargs["endpoint_url"] = endpoint
     if aws_access_key_id is not None:
         kwargs["aws_access_key_id"] = aws_access_key_id
     if aws_secret_access_key is not None:
         kwargs["aws_secret_access_key"] = aws_secret_access_key
     if aws_region is not None:
         kwargs["region_name"] = aws_region
+
+    print(f"boto3 connection settings: {kwargs}")
+
     return args, kwargs
 
 
@@ -75,12 +84,13 @@ def proxy_app(
     bucket,
     aws_region,
     healthcheck_key,
-    sso_url_internal,
     key_prefix=None,
     aws_access_key_id=None,
     aws_secret_access_key=None,
+    s3_use_local=None,
+    s3_endpoint_url=None,
+    sso_url_internal=None,
 ):
-
     proxied_request_headers = [
         "range",
     ]
@@ -102,7 +112,11 @@ def proxy_app(
         key_prefix = ""
 
     boto_args, boto_kwargs = get_boto_s3client_args(
-        aws_access_key_id, aws_secret_access_key, aws_region
+        aws_access_key_id,
+        aws_secret_access_key,
+        aws_region,
+        s3_use_local,
+        s3_endpoint_url,
     )
     s3 = boto3.client(*boto_args, **boto_kwargs)
 
@@ -225,7 +239,9 @@ def proxy_app(
                     "client_secret": sso_client_secret,
                     "redirect_uri": get_callback_uri(),
                 }
-                with requests.post(f"{sso_url_internal}{token_path}", data=data) as response:
+                with requests.post(
+                    f"{sso_url_internal}{token_path}", data=data
+                ) as response:
                     content = response.content
 
                 if response.status_code in [401, 403]:
@@ -245,7 +261,8 @@ def proxy_app(
 
             def get_token_code(token):
                 with requests.get(
-                    f"{sso_url_internal}{me_path}", headers={"authorization": f"Bearer {token}"}
+                    f"{sso_url_internal}{me_path}",
+                    headers={"authorization": f"Bearer {token}"},
                 ) as response:
                     return response.status_code
 
@@ -291,10 +308,7 @@ def proxy_app(
 
         try:
             s3_obj = s3.get_object(**request_kwargs)
-            if "Range" in request_kwargs:
-                status_code = 206
-            else:
-                status_code = 200
+            status_code = s3_obj["ResponseMetadata"]["HTTPStatusCode"]
         except s3.exceptions.NoSuchKey as e:
             status_code = 404
         except:
@@ -305,9 +319,9 @@ def proxy_app(
         if status_code in (200, 206):
             response_headers = tuple(
                 (
-                    (key, s3_obj[camel_to_pascal_case(key)])
+                    (key, s3_obj["ResponseMetadata"]["HTTPHeaders"][key])
                     for key in proxied_response_headers
-                    if camel_to_pascal_case(key) in s3_obj
+                    if key in s3_obj["ResponseMetadata"]["HTTPHeaders"]
                 )
             )
 
@@ -355,6 +369,10 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(stdout_handler)
 
+    s3_use_local = os.environ.get("S3_USE_LOCAL", False)
+    if s3_use_local is not False and s3_use_local not in [0, "0", "false", "False"]:
+        s3_use_local = True
+
     start, stop = proxy_app(
         logger,
         int(os.environ["PORT"]),
@@ -365,10 +383,12 @@ def main():
         os.environ["AWS_S3_BUCKET"],
         os.environ["AWS_DEFAULT_REGION"],
         os.environ["AWS_S3_HEALTHCHECK_KEY"],
-        os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
         os.environ.get("KEY_PREFIX", None),
         os.environ.get("AWS_ACCESS_KEY_ID", None),
         os.environ.get("AWS_SECRET_ACCESS_KEY", None),
+        s3_use_local,
+        os.environ.get("S3_ENDPOINT_URL", None),
+        os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)
