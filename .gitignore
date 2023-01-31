@@ -111,3 +111,6 @@ venv.bak/
 
 # OS X
 .DS_Store
+
+# PII checker
+.pii-secret-hook/
