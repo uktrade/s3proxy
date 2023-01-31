@@ -64,7 +64,7 @@ mypy:
 	$(poetry) run mypy .
 
 bash:
-	$(run) s3proxy bash
+	$(run) -v ./:/app/ s3proxy bash
 
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
@@ -94,3 +94,6 @@ poetry-update:
 check-fixme:
 	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml'
 	! git --no-pager grep -rni @TODO -- ':!./makefile' ':!./.circleci/config.yml'
+
+pii:
+	$(poetry) run pii-security-check-hooks
