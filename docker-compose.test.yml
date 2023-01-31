@@ -25,20 +25,23 @@ services:
       - default
       - inside
     env_file: .env
+    environment:
+      - "PORT=8080"
+      - "SSO_URL_INTERNAL=http://localhost:8081/"
     command: "poetry run python -m app"
     volumes:
       - ./:/app/
     ports:
-      - "8000:8000"
+      - "8080:8080"
+      - "8081:8081"
     depends_on:
       - redis
       - minio
-      - sso
     restart: unless-stopped
     stdin_open: true
     tty: true
 
-  # used for dev and testing; Minio is an S3 clone
+  # used for dev and testing only; Minio is an S3 clone
   minio:
     image: minio/minio
     networks:
@@ -59,22 +62,6 @@ services:
         '-c',
         'mkdir -p /data/my-bucket && minio server --console-address ":9001" /data'
       ]
-
-  # used for dev ONLY; mocks SSO auth
-  sso:
-    build:
-      context: .
-      dockerfile: "docker/Dockerfile.sso"
-    networks:
-      - default
-      - inside
-    environment:
-      - PORT=8081
-    command: "poetry run python -m sso_server"
-    ports:
-      - "8081:8081"
-    stdin_open: true
-    tty: true
 
 volumes:
   minio_storage: {}
