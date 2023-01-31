@@ -12,11 +12,13 @@ help:
 	@echo -e "$(COLOUR_GREEN)|--- $(APPLICATION_NAME) ---|$(COLOUR_NONE)"
 	@echo -e "$(COLOUR_YELLOW)make build$(COLOUR_NONE) : Run docker-compose build"
 	@echo -e "$(COLOUR_YELLOW)make up$(COLOUR_NONE) : Run docker-compose up"
+	@echo -e "$(COLOUR_YELLOW)make reload$(COLOUR_NONE) : Run docker-compose restart s3proxy"
+	@echo -e "$(COLOUR_YELLOW)make rebuild$(COLOUR_NONE) : Run docker-compose up --detach --build"
 	@echo -e "$(COLOUR_YELLOW)make up-detached$(COLOUR_NONE) : Run docker-compose up in detached mode (useful for CI)"
 	@echo -e "$(COLOUR_YELLOW)make down$(COLOUR_NONE) : Run docker-compose down"
 	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on the application container"
 	@echo -e "$(COLOUR_YELLOW)make format$(COLOUR_NONE) : Run black and isort"
-	@echo -e "$(COLOUR_YELLOW)make test$(COLOUR_NONE) : Run tests"
+	@echo -e "$(COLOUR_YELLOW)make test$(COLOUR_NONE) : Run tests - can pass argument to specify a single test with make test test=<name_of_your_test>"
 	@echo -e "$(COLOUR_YELLOW)make flake8$(COLOUR_NONE) : Run flake8 checks"
 	@echo -e "$(COLOUR_YELLOW)make black$(COLOUR_NONE) : Run black"
 	@echo -e "$(COLOUR_YELLOW)make isort$(COLOUR_NONE) : Run isort"
@@ -29,8 +31,14 @@ help:
 build:
 	docker-compose build
 
-up:
+up: down
 	docker-compose up
+
+reload:
+	docker-compose restart s3proxy
+
+rebuild:
+	docker-compose up --detach --build
 
 up-detached:
 	docker-compose up -d
@@ -61,8 +69,11 @@ bash:
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
 
-test:
-	$(poetry) run python -m unittest -v -b $(test)
+# internal use to allow `test` command to have other dependencies
+runtests:
+	docker-compose -f docker-compose.test.yml run --rm s3proxy poetry --quiet run python -m unittest -v -b $(test)
+
+test: down runtests down
 
 view-coverage:
 	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"

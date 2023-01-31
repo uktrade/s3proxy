@@ -1,37 +1,75 @@
-from gevent import ( # type: ignore
+import gevent  # noqa
+from gevent import (  # noqa
     monkey,
 )
 
-monkey.patch_all()
-import gevent # type: ignore
+monkey.patch_all()  # noqa
 
-from datetime import (
-    datetime,
+import requests
+import redis
+from gevent.pywsgi import (
+    WSGIHandler,
+    WSGIServer,
 )
-from functools import (
-    wraps,
-)
-import hashlib
-import hmac
-import logging
-import json
-import os
-import secrets
-import signal
-import sys
-import urllib.parse
-
 from flask import (
     Flask,
     Response,
     request,
 )
-from gevent.pywsgi import ( # type: ignore
-    WSGIHandler,
-    WSGIServer,
+import urllib.parse
+import sys
+import signal
+import secrets
+import os
+import json
+import logging
+from functools import (
+    wraps,
 )
-import redis
-import requests
+from datetime import (
+    datetime,
+)
+
+# suppress very verbose boto3 logging
+logging.getLogger("boto3").setLevel(logging.CRITICAL)
+logging.getLogger("botocore").setLevel(logging.CRITICAL)
+logging.getLogger("s3transfer").setLevel(logging.CRITICAL)
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+
+import boto3
+from botocore.config import Config
+
+
+def camel_to_pascal_case(input):
+    """Needed for the boto dict keys and param names, vs header names"""
+    return input.replace("_", " ").title().replace(" ", "")
+
+
+def get_boto_s3client_args(
+    aws_access_key_id=None,
+    aws_secret_access_key=None,
+    aws_region=None,
+    use_local=None,
+    endpoint=None,
+):
+    """Extracted to a function to allow monkey-patching for test run"""
+    args = ("s3",)
+    kwargs = {
+        "config": Config(
+            signature_version="v4", retries={"max_attempts": 10, "mode": "standard"}
+        ),
+    }
+
+    if use_local is True:
+        kwargs["endpoint_url"] = endpoint
+    if aws_access_key_id is not None:
+        kwargs["aws_access_key_id"] = aws_access_key_id
+    if aws_secret_access_key is not None:
+        kwargs["aws_secret_access_key"] = aws_secret_access_key
+    if aws_region is not None:
+        kwargs["region_name"] = aws_region
+
+    return args, kwargs
 
 
 def proxy_app(
@@ -41,20 +79,18 @@ def proxy_app(
     sso_url,
     sso_client_id,
     sso_client_secret,
-    aws_access_key_id,
-    aws_secret_access_key,
-    endpoint_url,
-    region_name,
+    bucket,
+    aws_region,
     healthcheck_key,
+    key_prefix=None,
+    aws_access_key_id=None,
+    aws_secret_access_key=None,
+    s3_use_local=None,
+    s3_endpoint_url=None,
+    sso_url_internal=None,
 ):
-
     proxied_request_headers = [
         "range",
-    ]
-    proxied_response_codes = [
-        200,
-        206,
-        404,
     ]
     proxied_response_headers = [
         "accept-ranges",
@@ -67,6 +103,20 @@ def proxy_app(
     ]
     redis_prefix = "s3proxy"
     redis_client = redis.from_url(redis_url)
+
+    if key_prefix is not None:
+        key_prefix += "/"
+    else:
+        key_prefix = ""
+
+    boto_args, boto_kwargs = get_boto_s3client_args(
+        aws_access_key_id,
+        aws_secret_access_key,
+        aws_region,
+        s3_use_local,
+        s3_endpoint_url,
+    )
+    s3 = boto3.client(*boto_args, **boto_kwargs)
 
     def start():
         server.serve_forever()
@@ -143,7 +193,7 @@ def proxy_app(
                 )
 
             def redirect_to_sso():
-                logger.debug("Redirecting to SSO")
+                logger.debug("Redirecting to SSO: {")
                 callback_uri = urllib.parse.quote(get_callback_uri(), safe="")
                 state = secrets.token_hex(32)
                 redis_set(
@@ -187,7 +237,9 @@ def proxy_app(
                     "client_secret": sso_client_secret,
                     "redirect_uri": get_callback_uri(),
                 }
-                with requests.post(f"{sso_url}{token_path}", data=data) as response:
+                with requests.post(
+                    f"{sso_url_internal}{token_path}", data=data
+                ) as response:
                     content = response.content
 
                 if response.status_code in [401, 403]:
@@ -207,7 +259,8 @@ def proxy_app(
 
             def get_token_code(token):
                 with requests.get(
-                    f"{sso_url}{me_path}", headers={"authorization": f"Bearer {token}"}
+                    f"{sso_url_internal}{me_path}",
+                    headers={"authorization": f"Bearer {token}"},
                 ) as response:
                     return response.status_code
 
@@ -235,59 +288,49 @@ def proxy_app(
     def proxy(path):
         logger.debug("Attempt to proxy: %s", request)
 
-        url = endpoint_url + path
-        body_hash = hashlib.sha256(b"").hexdigest()
-        pre_auth_headers = tuple(
-            (
-                (key, request.headers[key])
-                for key in proxied_request_headers
-                if key in request.headers
-            )
-        )
-        parsed_url = urllib.parse.urlsplit(url)
-        request_headers = aws_sigv4_headers(
-            pre_auth_headers,
-            "s3",
-            parsed_url.netloc,
-            "GET",
-            parsed_url.path,
-            (),
-            body_hash,
-        )
-        response = requests.get(url, headers=dict(request_headers), stream=True)
-
-        response_headers = tuple(
-            (
-                (key, response.headers[key])
-                for key in proxied_response_headers
-                if key in response.headers
-            )
-        )
-        allow_proxy = response.status_code in proxied_response_codes
-
-        logger.debug("Response: %s", response)
-        logger.debug("Allowing proxy: %s", allow_proxy)
-
-        def body_upstream():
-            for chunk in response.iter_content(16384):
+        def body_upstream(streamingBody):
+            for chunk in streamingBody.iter_chunks(chunk_size=16384):
                 yield chunk
 
-        def body_empty():
+        def body_empty(streamingBody):
             # Ensure this is a generator
             while False:
                 yield
-
-            for _ in response.iter_content(16384):
+            for _ in iter(streamingBody):
                 pass
 
-        downstream_response = (
-            Response(
-                body_upstream(), status=response.status_code, headers=response_headers
+        request_kwargs = {"Bucket": bucket, "Key": key_prefix + path}
+        for key in proxied_request_headers:
+            if key in request.headers:
+                request_kwargs[camel_to_pascal_case(key)] = request.headers[key]
+
+        try:
+            s3_obj = s3.get_object(**request_kwargs)
+            status_code = s3_obj["ResponseMetadata"]["HTTPStatusCode"]
+        except s3.exceptions.NoSuchKey as e:
+            status_code = 404
+        except:
+            status_code = 500
+
+        logger.debug(f"Status code: {status_code}")
+
+        if status_code in (200, 206):
+            response_headers = tuple(
+                (
+                    (key, s3_obj["ResponseMetadata"]["HTTPHeaders"][key])
+                    for key in proxied_response_headers
+                    if key in s3_obj["ResponseMetadata"]["HTTPHeaders"]
+                )
             )
-            if allow_proxy
-            else Response(body_empty(), status=500)
-        )
-        downstream_response.call_on_close(response.close)
+
+            downstream_response = Response(
+                body_upstream(s3_obj["Body"]),
+                status=status_code,
+                headers=response_headers,
+            )
+            downstream_response.call_on_close(s3_obj["Body"].close)
+        else:
+            downstream_response = Response(body_empty([]), status=status_code)
         return downstream_response
 
     def redis_get(key):
@@ -298,78 +341,6 @@ def proxy_app(
 
     def redis_set(key, value, ex):
         redis_client.set(f"{redis_prefix}__{key}", value.encode(), ex=ex)
-
-    def aws_sigv4_headers(
-        pre_auth_headers, service, host, method, path, params, body_hash
-    ):
-        algorithm = "AWS4-HMAC-SHA256"
-
-        now = datetime.utcnow()
-        amzdate = now.strftime("%Y%m%dT%H%M%SZ")
-        datestamp = now.strftime("%Y%m%d")
-        credential_scope = f"{datestamp}/{region_name}/{service}/aws4_request"
-
-        pre_auth_headers_lower = tuple(
-            (
-                (header_key.lower(), " ".join(header_value.split()))
-                for header_key, header_value in pre_auth_headers
-            )
-        )
-        required_headers = (
-            ("host", host),
-            ("x-amz-content-sha256", body_hash),
-            ("x-amz-date", amzdate),
-        )
-        headers = sorted(pre_auth_headers_lower + required_headers)
-        signed_headers = ";".join(key for key, _ in headers)
-
-        def signature():
-            def canonical_request():
-                canonical_uri = urllib.parse.quote(path, safe="/~")
-                quoted_params = sorted(
-                    (
-                        urllib.parse.quote(key, safe="~"),
-                        urllib.parse.quote(value, safe="~"),
-                    )
-                    for key, value in params
-                )
-                canonical_querystring = "&".join(
-                    f"{key}={value}" for key, value in quoted_params
-                )
-                canonical_headers = "".join(
-                    f"{key}:{value}\n" for key, value in headers
-                )
-
-                return (
-                    f"{method}\n{canonical_uri}\n{canonical_querystring}\n"
-                    + f"{canonical_headers}\n{signed_headers}\n{body_hash}"
-                )
-
-            def sign(key, msg):
-                return hmac.new(key, msg.encode("ascii"), hashlib.sha256).digest()
-
-            string_to_sign = (
-                f"{algorithm}\n{amzdate}\n{credential_scope}\n"
-                + hashlib.sha256(canonical_request().encode("ascii")).hexdigest()
-            )
-
-            date_key = sign(("AWS4" + aws_secret_access_key).encode("ascii"), datestamp)
-            region_key = sign(date_key, region_name)
-            service_key = sign(region_key, service)
-            request_key = sign(service_key, "aws4_request")
-            return sign(request_key, string_to_sign).hex()
-
-        return (
-            (
-                b"authorization",
-                (
-                    f"{algorithm} Credential={aws_access_key_id}/{credential_scope}, "
-                    f"SignedHeaders={signed_headers}, Signature=" + signature()
-                ).encode("ascii"),
-            ),
-            (b"x-amz-date", amzdate.encode("ascii")),
-            (b"x-amz-content-sha256", body_hash.encode("ascii")),
-        ) + pre_auth_headers
 
     class RequestLinePathHandler(WSGIHandler):
         # The default WSGIHandler does not preseve a trailing question mark
@@ -396,6 +367,10 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(stdout_handler)
 
+    s3_use_local = os.environ.get("S3_USE_LOCAL", False)
+    if s3_use_local and s3_use_local not in [0, "0", "false", "False"]:
+        s3_use_local = True
+
     start, stop = proxy_app(
         logger,
         int(os.environ["PORT"]),
@@ -403,11 +378,15 @@ def main():
         os.environ["SSO_URL"],
         os.environ["SSO_CLIENT_ID"],
         os.environ["SSO_CLIENT_SECRET"],
-        os.environ["AWS_ACCESS_KEY_ID"],
-        os.environ["AWS_SECRET_ACCESS_KEY"],
-        os.environ["AWS_S3_ENDPOINT"],
-        os.environ["AWS_S3_REGION"],
+        os.environ["AWS_S3_BUCKET"],
+        os.environ["AWS_DEFAULT_REGION"],
         os.environ["AWS_S3_HEALTHCHECK_KEY"],
+        os.environ.get("KEY_PREFIX", None),
+        os.environ.get("AWS_ACCESS_KEY_ID", None),
+        os.environ.get("AWS_SECRET_ACCESS_KEY", None),
+        s3_use_local,
+        os.environ.get("S3_ENDPOINT_URL", None),
+        os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)
