@@ -27,6 +27,7 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-init$(COLOUR_NONE) : Initialise the detect-secrets for the project"
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-scan$(COLOUR_NONE) : detect-secrets scan for the project"
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-audit$(COLOUR_NONE) : detect-secrets audit for the project"
+	@echo -e "$(COLOUR_YELLOW)make pre-commit$(COLOUR_NONE) : manually run pre-commit hook config against all files"
 
 build:
 	docker-compose build
@@ -95,5 +96,5 @@ check-fixme:
 	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml'
 	! git --no-pager grep -rni @TODO -- ':!./makefile' ':!./.circleci/config.yml'
 
-pii:
-	$(poetry) run pii-security-check-hooks
+pre-commit:
+	$(poetry) run pre-commit run --all-files

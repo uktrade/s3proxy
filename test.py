@@ -1,27 +1,23 @@
-from app import get_boto_s3client_args
-import boto3
+# flake8: noqa
 import json
-from multiprocessing import (
-    Process,
-)
 import os
 import re
-import sys
-import time
 import signal
 import socket
 import subprocess
+import sys
+import time
 import unittest
 import urllib.parse
 import uuid
+from multiprocessing import Process
 
-from flask import (
-    Flask,
-    Response,
-    request,
-)
+import boto3
 import redis
 import requests
+from flask import Flask, Response, request
+
+from app import get_boto_s3client_args
 
 
 class TestS3ProxyE2E(unittest.TestCase):
@@ -914,11 +910,11 @@ def create_application(
             "AWS_S3_BUCKET": "my-bucket",
             "AWS_DEFAULT_REGION": "us-east-1",
             "AWS_S3_HEALTHCHECK_KEY": healthcheck_key,
-            'KEY_PREFIX': prefix,
+            "KEY_PREFIX": prefix,
             "AWS_ACCESS_KEY_ID": aws_access_key_id,
             "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             "S3_USE_LOCAL": "1",
-            "S3_ENDPOINT_URL": "http://minio:9000"
+            "S3_ENDPOINT_URL": "http://minio:9000",
         },
     )
 
@@ -948,7 +944,7 @@ def put_object(key, contents):
     )
     s3 = boto3.client(*boto_args, **boto_kwargs)
     response = s3.put_object(Key=key, Bucket="my-bucket", Body=contents.decode())
-    print (key)
+    print(key)
 
     s3.close()
 

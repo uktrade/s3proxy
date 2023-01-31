@@ -1,39 +1,19 @@
+# flake8: noqa
 import gevent  # type: ignore # noqa
-from gevent import (  # type: ignore # noqa
-    monkey,
-)
+from gevent import monkey  # type: ignore # noqa
 
 monkey.patch_all()  # noqa # type: ignore
 
-from datetime import (
-    datetime,
-)
-import hashlib
-import hmac
 import json
-
 import logging
-from multiprocessing import (
-    Process,
-)
 import os
-import re
-import sys
-import time
 import signal
 import socket
-import subprocess
-import unittest
-import urllib.parse
-import uuid
+import sys
+import time
+from multiprocessing import Process
 
-from flask import (
-    Flask,
-    Response,
-    request,
-)
-import redis
-import requests
+from flask import Flask, Response, request
 
 
 def create_sso(
@@ -42,7 +22,7 @@ def create_sso(
     max_attempts=100,
     is_logged_in=True,
     client_id="the-client-id",
-    client_secret="the-client-secret",
+    client_secret="the-client-secret",  # PS-IGNORE
     tokens_returned=None,  # None => infinite (see below), override for other behaviours
     token_expected="the-token",
     code_returned="the-code",
@@ -63,7 +43,7 @@ def create_sso(
         signal.signal(signal.SIGTERM, _stop)
 
         try:
-            app.run(host="0.0.0.0", port=int(os.environ["PORT"]), debug=True)
+            app.run(host="0.0.0.0", port=port, debug=True)
         except SystemExit:
             # app.run doesn't seem to have a good way of killing the server,
             # and want to exit cleanly for code coverage
@@ -72,9 +52,7 @@ def create_sso(
     def wait_until_connected():
         for i in range(0, max_attempts):
             try:
-                with socket.create_connection(
-                    ("0.0.0.0", int(os.environ["PORT"])), timeout=0.1
-                ):
+                with socket.create_connection(("0.0.0.0", port), timeout=0.1):
                     break
             except (OSError, ConnectionRefusedError):
                 if i == max_attempts - 1:
@@ -102,7 +80,7 @@ def create_sso(
     def handle_authorize():
         args = request.args
         redirect_url = (
-            f'{args["redirect_uri"]}?state={args["state"]}&code={code_returned}'
+            f'{args["redirect_uri"]}' f'?state={args["state"]}&code={code_returned}'
         )
         return (
             Response(status=302, headers={"location": redirect_url})
