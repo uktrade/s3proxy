@@ -16,7 +16,8 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make rebuild$(COLOUR_NONE) : Run docker-compose up --detach --build"
 	@echo -e "$(COLOUR_YELLOW)make up-detached$(COLOUR_NONE) : Run docker-compose up in detached mode (useful for CI)"
 	@echo -e "$(COLOUR_YELLOW)make down$(COLOUR_NONE) : Run docker-compose down"
-	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on the application container"
+	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on a new application container"
+	@echo -e "$(COLOUR_YELLOW)make shell$(COLOUR_NONE) : Start a bash session on the running application container if it exists"
 	@echo -e "$(COLOUR_YELLOW)make format$(COLOUR_NONE) : Run black and isort"
 	@echo -e "$(COLOUR_YELLOW)make test$(COLOUR_NONE) : Run tests - can pass argument to specify a single test with make test test=<name_of_your_test>"
 	@echo -e "$(COLOUR_YELLOW)make flake8$(COLOUR_NONE) : Run flake8 checks"
@@ -66,6 +67,9 @@ mypy:
 
 bash:
 	$(run) -v ./:/app/ s3proxy bash
+
+shell:
+	docker-compose exec s3proxy bash
 
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing

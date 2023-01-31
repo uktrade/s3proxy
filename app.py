@@ -129,7 +129,7 @@ def proxy_app(
         expired_message = (
             b'<p style="font-weight: bold; font-family: Helvetica, Arial,'
             b' sans-serif">Sign in may have taken too long. Please try the'
-            b"original link again.</p>"
+            b" original link again.</p>"
         )
 
         cookie_max_age = 60 * 60 * 9
