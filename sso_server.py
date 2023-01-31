@@ -22,7 +22,7 @@ def create_sso(
     max_attempts=100,
     is_logged_in=True,
     client_id="the-client-id",
-    client_secret="the-client-secret",  # PS-IGNORE
+    client_secret="the-client-secret",  # pragma: allowlist secret
     tokens_returned=None,  # None => infinite (see below), override for other behaviours
     token_expected="the-token",
     code_returned="the-code",

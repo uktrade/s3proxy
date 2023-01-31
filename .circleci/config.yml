@@ -14,14 +14,14 @@ jobs:
             make build
             make up-detached
       - run:
-          name: Linting
+          name: Lint & Format
           command: |
             make format
             make flake8
             make mypy
             make check-fixme
       - run:
-          name: Testing
+          name: Test
           command: |
             make test
       - codecov/upload
