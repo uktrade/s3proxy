@@ -948,7 +948,6 @@ def put_object(key, contents):
     )
     s3 = boto3.client(*boto_args, **boto_kwargs)
     response = s3.put_object(Key=key, Bucket="my-bucket", Body=contents.decode())
-    print(key)
 
     s3.close()
 
