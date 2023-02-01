@@ -1,34 +1,22 @@
-import gevent  # noqa
-from gevent import (  # noqa
-    monkey,
-)
+import gevent
+from gevent import monkey
 
-monkey.patch_all()  # noqa
+monkey.patch_all()
 
-import requests
-import redis
-from gevent.pywsgi import (
-    WSGIHandler,
-    WSGIServer,
-)
-from flask import (
-    Flask,
-    Response,
-    request,
-)
-import urllib.parse
-import sys
-import signal
-import secrets
-import os
 import json
 import logging
-from functools import (
-    wraps,
-)
-from datetime import (
-    datetime,
-)
+import os
+import secrets
+import signal
+import sys
+import urllib.parse
+from datetime import datetime
+from functools import wraps
+
+import redis
+import requests
+from flask import Flask, Response, request
+from gevent.pywsgi import WSGIHandler, WSGIServer
 
 # suppress very verbose boto3 logging
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -139,9 +127,9 @@ def proxy_app(
         session_token_key = "sso_token"
 
         expired_message = (
-            b'<p style="font-weight: bold; font-family: Helvetica, Arial, sans-serif">'
-            b"Sign in may have taken too long. Please try the original link again."
-            b"</p>"
+            b'<p style="font-weight: bold; font-family: Helvetica, Arial,'
+            b' sans-serif">Sign in may have taken too long. Please try the'
+            b" original link again.</p>"
         )
 
         cookie_max_age = 60 * 60 * 9
@@ -161,15 +149,17 @@ def proxy_app(
                 session_id = request.cookies[session_cookie_name]
                 return redis_get(f"{session_cookie_name}__{session_id}__{key}")
 
-            # In our case all session values are set exactly when we want a new session cookie
+            # In our case all session values are set exactly when we want a
+            # new session cookie
             # (done to mitigate session fixation attacks)
             def with_new_session_cookie(response, session_values):
+                is_secure = request.headers.get("x-forwarded-proto", "http") == "https"
                 session_id = secrets.token_urlsafe(64)
                 response.set_cookie(
                     session_cookie_name,
                     session_id,
                     httponly=True,
-                    secure=request.headers.get("x-forwarded-proto", "http") == "https",
+                    secure=is_secure,
                     max_age=cookie_max_age,
                     expires=datetime.utcnow().timestamp() + cookie_max_age,
                 )
@@ -189,7 +179,8 @@ def proxy_app(
             def get_request_url_with_scheme():
                 scheme = request.headers.get("x-forwarded-proto", "http")
                 return (
-                    f'{scheme}://{request.host}{request.environ["REQUEST_LINE_PATH"]}'
+                    f"{scheme}://{request.host}"
+                    f'{request.environ["REQUEST_LINE_PATH"]}'
                 )
 
             def redirect_to_sso():
@@ -302,14 +293,15 @@ def proxy_app(
         request_kwargs = {"Bucket": bucket, "Key": key_prefix + path}
         for key in proxied_request_headers:
             if key in request.headers:
-                request_kwargs[camel_to_pascal_case(key)] = request.headers[key]
+                camel_key = camel_to_pascal_case(key)
+                request_kwargs[camel_key] = request.headers[key]
 
         try:
             s3_obj = s3.get_object(**request_kwargs)
             status_code = s3_obj["ResponseMetadata"]["HTTPStatusCode"]
-        except s3.exceptions.NoSuchKey as e:
+        except s3.exceptions.NoSuchKey:
             status_code = 404
-        except:
+        except Exception:  # don't want to expose anything to users
             status_code = 500
 
         logger.debug(f"Status code: {status_code}")
@@ -371,10 +363,14 @@ def main():
     if s3_use_local and s3_use_local not in [0, "0", "false", "False"]:
         s3_use_local = True
 
+    redis_url = json.loads(os.environ["VCAP_SERVICES"])["redis"][0]["credentials"][
+        "uri"
+    ]
+
     start, stop = proxy_app(
         logger,
         int(os.environ["PORT"]),
-        json.loads(os.environ["VCAP_SERVICES"])["redis"][0]["credentials"]["uri"],
+        redis_url,
         os.environ["SSO_URL"],
         os.environ["SSO_CLIENT_ID"],
         os.environ["SSO_CLIENT_SECRET"],

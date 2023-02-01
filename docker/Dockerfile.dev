@@ -1,4 +1,4 @@
-FROM python:3.7.9
+FROM python:3.11
 
 ENV PORT 8000
 ENV VCAP_SERVICES '{"redis": [{"credentials": {"uri": "redis://redis:6379/0"}}]}'
@@ -30,4 +30,4 @@ COPY . /app/
 
 # So we have coverage for sub-processes
 # https://coverage.readthedocs.io/en/stable/subprocess.html
-RUN echo "import coverage; coverage.process_startup()" > "$(poetry env info -p)/lib/python3.7/site-packages/coverage.pth"
+RUN echo "import coverage; coverage.process_startup()" > "$(poetry env info -p)/lib/python3.11/site-packages/coverage.pth"

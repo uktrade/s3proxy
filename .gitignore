@@ -107,6 +107,10 @@ venv.bak/
 # IDE
 .idea/
 .vscode/
+.devcontainer/
 
 # OS X
 .DS_Store
+
+# PII checker
+.pii-secret-hook/

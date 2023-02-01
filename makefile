@@ -16,7 +16,8 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make rebuild$(COLOUR_NONE) : Run docker-compose up --detach --build"
 	@echo -e "$(COLOUR_YELLOW)make up-detached$(COLOUR_NONE) : Run docker-compose up in detached mode (useful for CI)"
 	@echo -e "$(COLOUR_YELLOW)make down$(COLOUR_NONE) : Run docker-compose down"
-	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on the application container"
+	@echo -e "$(COLOUR_YELLOW)make bash$(COLOUR_NONE) : Start a bash session on a new application container"
+	@echo -e "$(COLOUR_YELLOW)make shell$(COLOUR_NONE) : Start a bash session on the running application container if it exists"
 	@echo -e "$(COLOUR_YELLOW)make format$(COLOUR_NONE) : Run black and isort"
 	@echo -e "$(COLOUR_YELLOW)make test$(COLOUR_NONE) : Run tests - can pass argument to specify a single test with make test test=<name_of_your_test>"
 	@echo -e "$(COLOUR_YELLOW)make flake8$(COLOUR_NONE) : Run flake8 checks"
@@ -27,6 +28,7 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-init$(COLOUR_NONE) : Initialise the detect-secrets for the project"
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-scan$(COLOUR_NONE) : detect-secrets scan for the project"
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-audit$(COLOUR_NONE) : detect-secrets audit for the project"
+	@echo -e "$(COLOUR_YELLOW)make pre-commit$(COLOUR_NONE) : manually run pre-commit hook config against all files"
 
 build:
 	docker-compose build
@@ -50,15 +52,13 @@ run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
 flake8:
-	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"
-#	$(poetry) run flake8 $(file)
+	$(poetry) run flake8 $(file)
 
 black:
 	$(poetry) run black .
 
 isort:
-	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"
-#	$(poetry) run isort .
+	$(poetry) run isort .
 
 format: black isort
 
@@ -66,7 +66,10 @@ mypy:
 	$(poetry) run mypy .
 
 bash:
-	$(run) s3proxy bash
+	$(run) -v ./:/app/ s3proxy bash
+
+shell:
+	docker-compose exec s3proxy bash
 
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
@@ -96,3 +99,6 @@ poetry-update:
 check-fixme:
 	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml'
 	! git --no-pager grep -rni @TODO -- ':!./makefile' ':!./.circleci/config.yml'
+
+pre-commit:
+	$(poetry) run pre-commit run --all-files
