@@ -363,9 +363,14 @@ def main():
     if s3_use_local and s3_use_local not in [0, "0", "false", "False"]:
         s3_use_local = True
 
-    redis_url = json.loads(os.environ["VCAP_SERVICES"])["redis"][0]["credentials"][
-        "uri"
-    ]
+    # prioritise VCAP_SERVICES since it's unlikely to be set except in PaaS,
+    # where it will be required as the valid endpoint
+    if "VCAP_SERVICES" in os.environ:
+        redis_url = json.loads(os.environ["VCAP_SERVICES"])["redis"][0]["credentials"][
+            "uri"
+        ]
+    else:
+        redis_url = os.environ["REDIS_ENDPOINT"]
 
     start, stop = proxy_app(
         logger,

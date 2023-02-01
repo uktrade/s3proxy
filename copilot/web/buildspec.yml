@@ -1,0 +1,24 @@
+version: 0.2
+
+# Here you define and env VARS you need during your tests.
+env:
+  variables:
+    LOG_LEVEL: DEBUG
+
+phases:
+  # Here will be your packages you need for your tests.
+  # install:
+  #   runtime-versions:
+  #     python: 3.11
+  #
+  # # Here will be your tests.
+  # pre_build:
+  #   commands:
+  #     - echo "Running Tests"
+  #     - {run your test commands here if you have some}
+
+  # This will build your app and push to ECR
+  build:
+    commands:
+      - echo "Building App"
+      - /work/build.sh

@@ -9,6 +9,9 @@
 
 | Variable                 | Description                                                                                                           | Example                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `PORT`          | The port for the application to listen on                        | `8080`                                                                        |
+| `VCAP_SERVICES`* | A JSON-encoded dictionary containing the URI to a redis instance | `{"redis": [{"credentials": {"uri": "redis://my-redis.domain.com:6379/0"}}]}` |
+| `REDIS_ENDPOINT`* | A string URI to a redis instance | `redis://my-redis.domain.com:6379/0` |
 | `SSO_URL`                | The root URL to SSO                                                                                                   | `https://sso.domain.com/`             |
 | `SSO_CLIENT_ID`          | The client ID of the SSO application                                                                                  | _not shown_                           |
 | `SSO_CLIENT_SECRET`      | The client secret of the SSO application                                                                              | _not shown_                           |
@@ -16,12 +19,7 @@
 | `AWS_S3_BUCKET`          | The S3 bucket name, optionally including a key prefix (i.e. a "folder" in the bucket). No trailing slash is expected. | `my-bucket`<br>`my-bucket/key-prefix` |
 | `AWS_S3_HEALTHCHECK_KEY` | The key of an object in the S3 bucket to be proxied without SSO authentication                                        | `healthcheck.txt`                     |
 
-The below environment variables are also required, but typically populated by PaaS.
-
-| Variable        | Description                                                      | Example                                                                       |
-| --------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `PORT`          | The port for the application to listen on                        | `8080`                                                                        |
-| `VCAP SERVICES` | A JSON-encoded dictionary containing the URI to a redis instance | `{"redis": [{"credentials": {"uri": "redis://my-redis.domain.com:6379/0"}}]}` |
+> \* Note that only one of `VCAP_SERVICES` and `REDIS_ENDPOINT` is required, and that if both are supplied then `VCAP_SERVICES` will take precedence. This is to allow the codebase to run both in and out of PaaS.
 
 ### Optional
 
