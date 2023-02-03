@@ -23,6 +23,7 @@ jobs:
           file: "docker/Dockerfile.dev"
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          load: true
       - name: Setup
         run: |
             cp .env.ci .env
