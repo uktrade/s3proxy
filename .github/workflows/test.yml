@@ -28,7 +28,7 @@ jobs:
             cp .env.ci .env
         # make setup-ci
       - name: Lint & Format
-        run: make lint-ci
+        run: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 make lint-ci
       - name: Test
-        run: make test-ci
+        run: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 make test-ci
         # codecov ?
