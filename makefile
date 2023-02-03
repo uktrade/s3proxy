@@ -33,10 +33,6 @@ help:
 build:
 	docker-compose build
 
-setup-ci:
-	docker-compose -f docker-compose.test.yml build
-	docker-compose -f docker-compose.test.yml up -d
-
 up: down
 	docker-compose up
 
@@ -54,6 +50,9 @@ down:
 
 run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
+
+run-ci = docker-compose -f docker-compose.test.yml run --rm
+poetry-ci = $(run-ci) s3proxy poetry --quiet
 
 flake8:
 	$(poetry) run flake8 $(file)
@@ -80,7 +79,7 @@ all-requirements:
 
 # internal use to allow `test` command to have other dependencies
 runtests:
-	docker-compose -f docker-compose.test.yml run --rm s3proxy poetry --quiet run python -m unittest -v -b $(test)
+	$(poetry-ci) run python -m unittest -v -b $(test)
 
 test: down runtests down
 
@@ -106,3 +105,17 @@ check-fixme:
 
 pre-commit:
 	$(poetry) run pre-commit run --all-files
+
+setup-ci:
+	docker-compose -f docker-compose.test.yml build
+	docker-compose -f docker-compose.test.yml up -d
+
+lint-ci:
+	$(poetry-ci) black
+	$(poetry-ci) isort
+	$(poetry-ci) flake8
+	$(poetry-ci) mypy
+	$(poetry-ci) check-fixme
+
+test-ci:
+	runtests

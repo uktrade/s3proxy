@@ -30,12 +30,7 @@ jobs:
             cp .env.ci .env
             make setup-ci
       - name: Lint & Format
-        run: |
-            make format
-            make flake8
-            make mypy
-            make check-fixme
+        run: make lint-ci
       - name: Test
-        run: make test
+        run: make test-ci
         # codecov ?
-      - run: make down

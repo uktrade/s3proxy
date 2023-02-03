@@ -4,8 +4,8 @@ WORKDIR /app
 
 RUN apt-get update -y
 
-RUN pip install --upgrade pip
-RUN pip install poetry
+RUN pip install --upgrade pip && \
+    pip install poetry
 
 COPY poetry.lock pyproject.toml /app/
 RUN poetry install --with dev,testing

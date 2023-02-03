@@ -18,16 +18,14 @@ ENV SSO_URL_INTERNAL 'http://sso:8081/'
 
 WORKDIR /app
 
-RUN apt-get update -y
-
-RUN pip install --upgrade pip
-RUN pip install poetry
+RUN apt-get update -y && \
+    pip install --upgrade pip&& \
+    pip install poetry
 
 COPY poetry.lock pyproject.toml /app/
-RUN poetry install --with dev,testing
+RUN poetry install --with dev,testing && \
+    echo "import coverage; coverage.process_startup()" > "$(poetry env info -p)/lib/python3.11/site-packages/coverage.pth"
+# Prev line is so we have coverage for sub-processes
+# https://coverage.readthedocs.io/en/stable/subprocess.html
 
 COPY . /app/
-
-# So we have coverage for sub-processes
-# https://coverage.readthedocs.io/en/stable/subprocess.html
-RUN echo "import coverage; coverage.process_startup()" > "$(poetry env info -p)/lib/python3.11/site-packages/coverage.pth"

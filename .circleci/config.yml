@@ -14,14 +14,8 @@ jobs:
             make setup-ci
       - run:
           name: Lint & Format
-          command: |
-            make format
-            make flake8
-            make mypy
-            make check-fixme
+          command: make lint-ci
       - run:
           name: Test
-          command: |
-            make test
+          command: make test-ci
       - codecov/upload
-      - run: make down
