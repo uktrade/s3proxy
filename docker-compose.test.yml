@@ -1,68 +1,16 @@
-version: "3"
-# Network section required to avoid staff SSO IP collision
-networks:
-  inside:
-    external: false
-    internal: true
-  default:
-    ipam:
-      driver: default
-      config:
-        - subnet: 192.168.3.0/24
 services:
-  redis:
-    image: redis:5.0.6
-    networks:
-      - inside
-    ports:
-      - "6379:6379"
-
   main:
-    build:
-      context: .
-      dockerfile: "docker/Dockerfile.dev"
     image: "s3proxy/main"
-    networks:
-      - default
-      - inside
-    env_file: .env
     environment:
       - "PORT=8080"
       - "SSO_URL_INTERNAL=http://localhost:8081/"
-    command: "poetry run python -m app"
-    volumes:
-      - ./:/app/
     ports:
       - "8080:8080"
       - "8081:8081"
     depends_on:
       - redis
       - minio
-    restart: unless-stopped
-    stdin_open: true
-    tty: true
 
-  # used for dev and testing only; Minio is an S3 clone
-  minio:
-    image: minio/minio
-    networks:
-      - default
-      - inside
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_storage:/data
-    environment:
-      - "MINIO_ROOT_USER=AKIAIOSFODNN7EXAMPLE"
-      - "MINIO_ROOT_PASSWORD=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-      - "MINIO_REGION=us-east-1"
-    entrypoint: [ 'sh' ]
-    command:
-      [
-        '-c',
-        'mkdir -p /data/my-bucket && minio server --console-address ":9001" /data'
-      ]
-
-volumes:
-  minio_storage: {}
+  sso:
+    profiles:
+      - donotstart

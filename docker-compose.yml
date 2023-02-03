@@ -1,4 +1,4 @@
-version: "3"
+version: "3.9"
 # Network section required to avoid staff SSO IP collision
 networks:
   inside:

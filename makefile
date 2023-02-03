@@ -51,7 +51,7 @@ down:
 run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
-run-ci = docker-compose -f docker-compose.test.yml exec -it
+run-ci = docker-compose -f docker-compose.yml -f docker-compose.test.yml exec -it
 poetry-ci = $(run-ci) s3proxy poetry
 
 flake8:
@@ -105,10 +105,6 @@ check-fixme:
 
 pre-commit:
 	$(poetry) run pre-commit run --all-files
-
-setup-ci:
-	COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.test.yml build
-	COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.test.yml up -d
 
 lint-ci:
 	$(poetry-ci) run black .
