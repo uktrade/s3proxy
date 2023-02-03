@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: "docker/Dockerfile.dev"
+    image: "s3proxy/main"
     networks:
       - default
       - inside
