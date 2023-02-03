@@ -119,4 +119,4 @@ lint-ci:
 	! git --no-pager grep -rni @TODO -- ':!./makefile'
 
 test-ci:
-	runtests
+	make runtests
