@@ -34,8 +34,8 @@ build:
 	docker-compose build
 
 setup-ci:
-	docker-compose build -f docker-compose.test.yml
-	docker-compose up -f docker-compose.test.yml -d
+	docker-compose -f docker-compose.test.yml build
+	docker-compose -f docker-compose.test.yml up -d
 
 up: down
 	docker-compose up
