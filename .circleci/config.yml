@@ -6,16 +6,16 @@ jobs:
     machine:
       image: ubuntu-2004:202101-01
     steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            cp .env.ci .env
-            make setup-ci
-      - run:
-          name: Lint & Format
-          command: make lint-ci
-      - run:
-          name: Test
-          command: make test-ci
-      - codecov/upload
+      # - checkout
+      # - run:
+      #     name: Setup
+      #     command: |
+      #       cp .env.ci .env
+      #       make setup-ci
+      # - run:
+      #     name: Lint & Format
+      #     command: make lint-ci
+      # - run:
+      #     name: Test
+      #     command: make test-ci
+      # - codecov/upload

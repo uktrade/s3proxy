@@ -52,7 +52,7 @@ run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
 run-ci = docker-compose -f docker-compose.test.yml exec
-poetry-ci = $(run-ci) s3proxy poetry --quiet
+poetry-ci = $(run-ci) s3proxy poetry
 
 flake8:
 	$(poetry) run flake8 $(file)
@@ -119,4 +119,5 @@ lint-ci:
 	! git --no-pager grep -rni @TODO -- ':!./makefile'
 
 test-ci:
-	make runtests
+	# docker-compose -f docker-compose.test.yml up
+	make test
