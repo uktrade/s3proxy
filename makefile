@@ -51,7 +51,7 @@ down:
 run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
-run-ci = docker-compose -f docker-compose.test.yml run --rm
+run-ci = docker-compose -f docker-compose.test.yml exec
 poetry-ci = $(run-ci) s3proxy poetry --quiet
 
 flake8:
@@ -81,7 +81,7 @@ all-requirements:
 runtests:
 	$(poetry-ci) run python -m unittest -v -b $(test)
 
-test: down runtests down
+test: down up runtests down
 
 view-coverage:
 	@echo -e "$(COLOUR_RED)@TODO!$(COLOUR_NONE)"
@@ -111,11 +111,12 @@ setup-ci:
 	docker-compose -f docker-compose.test.yml up -d
 
 lint-ci:
-	$(poetry-ci) black
-	$(poetry-ci) isort
-	$(poetry-ci) flake8
-	$(poetry-ci) mypy
-	$(poetry-ci) check-fixme
+	$(poetry-ci) run black .
+	$(poetry-ci) run isort .
+	$(poetry-ci) run flake8 $(file)
+	$(poetry-ci) run mypy .
+	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml' ':!./.github/workflows/test.yml'
+	! git --no-pager grep -rni @TODO -- ':!./makefile'
 
 test-ci:
 	runtests
