@@ -11,7 +11,7 @@ jobs:
           name: Setup
           command: |
             cp .env.ci .env
-            make build
+            make build-ci
             make up-detached
       - run:
           name: Lint & Format

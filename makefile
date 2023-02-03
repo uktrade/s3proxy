@@ -33,6 +33,9 @@ help:
 build:
 	docker-compose build
 
+build-ci:
+	docker-compose build -f docker-compose.test.yml
+
 up: down
 	docker-compose up
 
@@ -97,8 +100,8 @@ poetry-update:
 	$(poetry) update
 
 check-fixme:
-	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml'
-	! git --no-pager grep -rni @TODO -- ':!./makefile' ':!./.circleci/config.yml'
+	! git --no-pager grep -rni fixme -- ':!./makefile' ':!./.circleci/config.yml' ':!./.github/workflows/test.yml'
+	! git --no-pager grep -rni @TODO -- ':!./makefile'
 
 pre-commit:
 	$(poetry) run pre-commit run --all-files
