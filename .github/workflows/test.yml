@@ -23,6 +23,7 @@ jobs:
       - name: Build & cache main docker image
         uses: docker/bake-action@v2.0.0
         with:
+          files: docker-compose.test.yml
           push: false
           load: true
           set: |
