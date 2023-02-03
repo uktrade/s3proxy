@@ -30,11 +30,8 @@ jobs:
             main.cache-from=type=gha
             main.cache-to=type=gha
             main.tags=s3proxy/main
-      - run: COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.test.yml up -d
-      # - name: Setup
-      #   run: |
-      #       cp .env.ci .env
-      #       make setup-ci
+      - name: Run containers
+        run: COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.test.yml up -d
       - name: Lint & Format
         run: make lint-ci
       - name: Test

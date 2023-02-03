@@ -119,5 +119,4 @@ lint-ci:
 	! git --no-pager grep -rni @TODO -- ':!./makefile'
 
 test-ci:
-	# docker-compose -f docker-compose.test.yml up
-	make test
+	make runtests
