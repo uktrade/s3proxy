@@ -107,8 +107,10 @@ pre-commit:
 	$(poetry) run pre-commit run --all-files
 
 setup-ci:
-	docker-compose -f docker-compose.test.yml build
-	docker-compose -f docker-compose.test.yml up -d
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.test.yml build
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.test.yml up -d
 
 lint-ci:
 	$(poetry-ci) run black .
