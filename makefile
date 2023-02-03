@@ -51,7 +51,7 @@ down:
 run = docker-compose run --rm
 poetry = $(run) s3proxy poetry --quiet
 
-run-ci = docker-compose -f docker-compose.test.yml exec
+run-ci = docker-compose -f docker-compose.test.yml exec -it
 poetry-ci = $(run-ci) s3proxy poetry
 
 flake8:

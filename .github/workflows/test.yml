@@ -27,9 +27,9 @@ jobs:
           push: false
           load: true
           set: |
-            s3proxy.cache-from=type=gha
-            s3proxy.cache-to=type=gha
-            s3proxy.tags=s3proxy/main
+            main.cache-from=type=gha
+            main.cache-to=type=gha
+            main.tags=s3proxy/main
       - run: COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.test.yml up -d
       # - name: Setup
       #   run: |
