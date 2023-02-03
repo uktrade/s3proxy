@@ -1,0 +1,42 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - "main" # committing directly to main
+      - "master"
+  pull_request:
+    branches:
+      - "main" # merging into main
+      - "master"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Set Up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup
+        run: |
+            cp .env.ci .env
+            make build
+            make up-detached
+      - name: Lint & Format
+        run: |
+            make format
+            make flake8
+            make mypy
+            make check-fixme
+      - name: Test
+        run: make test
+        # codecov ?
+      - run: make down
