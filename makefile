@@ -30,28 +30,31 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-audit$(COLOUR_NONE) : detect-secrets audit for the project"
 	@echo -e "$(COLOUR_YELLOW)make pre-commit$(COLOUR_NONE) : manually run pre-commit hook config against all files"
 
+compose-ci = docker-compose -f docker-compose.yml -f docker-compose.test.yml
+compose-dev = docker-compose -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.dev.yml
+
 build:
-	docker-compose build
+	$(compose-dev) build
 
 up: down
-	docker-compose up
+	$(compose-dev) up
 
 reload:
-	docker-compose restart s3proxy
+	$(compose-dev) restart s3proxy
 
 rebuild:
-	docker-compose up --detach --build
+	$(compose-dev) up --detach --build
 
 up-detached:
-	docker-compose up -d
+	$(compose-dev) up -d
 
 down:
 	docker-compose down
 
-run = docker-compose run --rm
+run = $(compose-dev) run --rm
 poetry = $(run) s3proxy poetry --quiet
 
-run-ci = docker-compose -f docker-compose.yml -f docker-compose.test.yml exec -it
+run-ci =$(compose-ci) exec -it
 poetry-ci = $(run-ci) s3proxy poetry
 
 flake8:
