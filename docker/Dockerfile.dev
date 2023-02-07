@@ -1,0 +1,31 @@
+FROM python:3.11
+
+ENV PORT 8000
+ENV VCAP_SERVICES '{"redis": [{"credentials": {"uri": "redis://redis:6379/0"}}]}'
+ENV SSO_URL 'http://localhost:8081/'
+ENV SSO_CLIENT_ID 'the-client-id'
+ENV SSO_CLIENT_SECRET  'the-client-secret'
+ENV AWS_S3_BUCKET 'my-bucket'
+ENV AWS_S3_HEALTHCHECK_KEY 'healthcheck_key'
+# local minio/s3 settings:
+ENV S3_USE_LOCAL 1
+ENV AWS_DEFAULT_REGION 'us-east-1'
+ENV AWS_ACCESS_KEY_ID 'AKIAIOSFODNN7EXAMPLE'
+ENV AWS_SECRET_ACCESS_KEY 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+ENV S3_ENDPOINT_URL 'http://minio:9000'
+# local sso mock setting:
+ENV SSO_URL_INTERNAL 'http://sso:8081/'
+
+WORKDIR /app
+
+RUN apt-get update -y && \
+    pip install --upgrade pip&& \
+    pip install poetry
+
+COPY poetry.lock pyproject.toml /app/
+RUN poetry install --with dev,testing && \
+    echo "import coverage; coverage.process_startup()" > "$(poetry env info -p)/lib/python3.11/site-packages/coverage.pth"
+# Prev line is so we have coverage for sub-processes
+# https://coverage.readthedocs.io/en/stable/subprocess.html
+
+COPY . /app/

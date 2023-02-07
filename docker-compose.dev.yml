@@ -1,0 +1,24 @@
+services:
+  main:
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - minio
+      - sso
+
+  # used for dev ONLY; mocks SSO auth
+  sso:
+    build:
+      context: .
+      dockerfile: "docker/Dockerfile.sso"
+    networks:
+      - default
+      - inside
+    environment:
+      - PORT=8081
+    command: "poetry run python -m sso_server"
+    ports:
+      - "8081:8081"
+    stdin_open: true
+    tty: true

@@ -24,6 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+Pipfile*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -105,6 +106,11 @@ venv.bak/
 
 # IDE
 .idea/
+.vscode/
+.devcontainer/
 
 # OS X
 .DS_Store
+
+# PII checker
+.pii-secret-hook/

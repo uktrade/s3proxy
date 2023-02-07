@@ -1,0 +1,28 @@
+version: "3.9"
+# Network section required to avoid staff SSO IP collision
+networks:
+  inside:
+    external: false
+    internal: true
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.3.0/24
+services:
+  main:
+    build:
+      context: .
+      dockerfile: "docker/Dockerfile.dev"
+    networks:
+      - default
+      - inside
+    env_file: .env
+    command: "poetry run python -m app"
+    volumes:
+      - ./:/app/
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
