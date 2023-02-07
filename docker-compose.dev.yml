@@ -2,6 +2,9 @@ services:
   main:
     ports:
       - "8080:8080"
+    environment:
+      - "PORT=8080"
+      - "SSO_URL_INTERNAL=http://sso:8082/"
     depends_on:
       - redis
       - minio
@@ -16,9 +19,9 @@ services:
       - default
       - inside
     environment:
-      - PORT=8081
+      - PORT=8082
     command: "poetry run python -m sso_server"
     ports:
-      - "8081:8081"
+      - "8082:8082"
     stdin_open: true
     tty: true
