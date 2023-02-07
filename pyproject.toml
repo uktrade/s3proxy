@@ -39,3 +39,9 @@ coverage = "^7.1.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+module = "mypy-gevent.*"
+ignore_missing_imports = true

@@ -40,7 +40,7 @@ up: down
 	$(compose-dev) up
 
 reload:
-	$(compose-dev) restart s3proxy
+	$(compose-dev) restart main
 
 rebuild:
 	$(compose-dev) up --detach --build
@@ -52,10 +52,10 @@ down:
 	docker-compose down
 
 run = $(compose-dev) run --rm
-poetry = $(run) s3proxy poetry --quiet
+poetry = $(run) main poetry --quiet
 
 run-ci =$(compose-ci) exec -it
-poetry-ci = $(run-ci) s3proxy poetry
+poetry-ci = $(run-ci) main poetry
 
 flake8:
 	$(poetry) run flake8 $(file)
@@ -72,10 +72,10 @@ mypy:
 	$(poetry) run mypy .
 
 bash:
-	$(run) -v ./:/app/ s3proxy bash
+	$(run) -v ./:/app/ main bash
 
 shell:
-	docker-compose exec s3proxy bash
+	docker-compose exec main bash
 
 all-requirements:
 	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
