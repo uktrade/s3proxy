@@ -1,4 +1,4 @@
 application:
-  name: s3proxy
+  name: intranet
   process:
-    - web
+    - s3proxy
