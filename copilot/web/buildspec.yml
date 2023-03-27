@@ -2,6 +2,10 @@ version: 0.2
 
 # Here you define and env VARS you need during your tests.
 env:
+  parameter-store:
+    SLACK_WORKSPACE_ID: "/codebuild/slack_workspace_id"
+    SLACK_CHANNEL_ID: "/codebuild/slack_channel_id"
+    SLACK_TOKEN: "/codebuild/slack_api_token"
   variables:
     LOG_LEVEL: DEBUG
 
