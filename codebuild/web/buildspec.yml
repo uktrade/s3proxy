@@ -8,7 +8,7 @@ env:
     SLACK_TOKEN: "/codebuild/slack_api_token"
   variables:
     LOG_LEVEL: DEBUG
-    BUILDER_VERSION: 0.2.395-full
+    PACKETO_BUILDER_VERSION: 0.2.395-full
 
 phases:
   # Here will be your packages you need for your tests.
