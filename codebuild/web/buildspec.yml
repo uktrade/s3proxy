@@ -9,6 +9,7 @@ env:
   variables:
     LOG_LEVEL: DEBUG
     PAKETO_BUILDER_VERSION: 0.2.395-full
+    LIFECYCLE_VERSION: 0.16.3
 
 phases:
   # Here will be your packages you need for your tests.
