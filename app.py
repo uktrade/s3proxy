@@ -370,7 +370,9 @@ def main():
             "uri"
         ]
     else:
-        redis_url = "rediss://" + os.environ["REDIS_ENDPOINT"]
+        redis_url = os.environ["REDIS_ENDPOINT"]
+
+    logger.info(f"Redis endpoint: {redis_url}")
 
     start, stop = proxy_app(
         logger,
