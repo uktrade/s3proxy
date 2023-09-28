@@ -143,14 +143,15 @@ def proxy_app(
         def _authenticate_by_sso(*args, **kwargs):
             # HACK!!! To fix nginx reverse proxy path coming through as:
             # "/https://v2.static.workspace.dev.uktrade.digital/healthcheck.txt"
-            request.path = re.sub(rf"/https?://{request.host}", "", request.path)
-
+            altered_path = re.sub(rf"/https?://{request.host}", "", request.path)
+            request.path = altered_path
             logger.debug("Request info: %s", json.dumps({
                 'headers': dict(request.headers),
                 'host': request.host,
                 'path': request.path,
                 'full_path': request.full_path,
                 'url': request.url,
+                'altered_path': altered_path,
             }))
 
             if request.path == f"/{healthcheck_key}":
