@@ -355,7 +355,7 @@ def proxy_app(
 
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
     app.add_url_rule("/<path:path>", view_func=proxy)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     server = WSGIServer(("0.0.0.0", port), app, handler_class=RequestLinePathHandler)
 
     return start, stop
