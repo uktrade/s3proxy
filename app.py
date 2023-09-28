@@ -147,6 +147,11 @@ def proxy_app(
                 'url': request.url,
             }))
 
+            try:
+                logger.debug("Request info: %s", json.dumps(request.__dict__))
+            except:
+                pass
+
             if request.path == f"/{healthcheck_key}":
                 logger.debug("Allowing healthcheck")
                 return f(*args, **kwargs)
