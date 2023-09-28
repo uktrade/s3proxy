@@ -1,3 +1,5 @@
+import re
+
 import gevent
 from gevent import monkey
 
@@ -139,6 +141,10 @@ def proxy_app(
 
         @wraps(f)
         def _authenticate_by_sso(*args, **kwargs):
+            # HACK!!! To fix nginx reverse proxy path coming through as:
+            # "/https://v2.static.workspace.dev.uktrade.digital/healthcheck.txt"
+            request.path = re.sub(rf"/https?://{request.host}", "", request.path)
+
             logger.debug("Request info: %s", json.dumps({
                 'headers': dict(request.headers),
                 'host': request.host,
@@ -146,11 +152,6 @@ def proxy_app(
                 'full_path': request.full_path,
                 'url': request.url,
             }))
-
-            try:
-                logger.debug("Request info: %s", json.dumps(request.__dict__))
-            except:
-                pass
 
             if request.path == f"/{healthcheck_key}":
                 logger.debug("Allowing healthcheck")
