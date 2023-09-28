@@ -306,6 +306,9 @@ def proxy_app(
                 pass
 
         request_kwargs = {"Bucket": bucket, "Key": key_prefix + path}
+
+        logger.debug("S3 Request %s %s", path, json.dumps(request_kwargs))
+
         for key in proxied_request_headers:
             if key in request.headers:
                 camel_key = camel_to_pascal_case(key)
