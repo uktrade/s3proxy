@@ -3,7 +3,6 @@ from gevent import monkey
 
 monkey.patch_all()
 
-import json
 import logging
 import os
 import secrets
@@ -18,6 +17,7 @@ import requests
 import json
 from flask import Flask, Response, request
 from gevent.pywsgi import WSGIHandler, WSGIServer
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # suppress very verbose boto3 logging
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -144,6 +144,7 @@ def proxy_app(
                 'host': request.host,
                 'path': request.path,
                 'full_path': request.full_path,
+                'url': request.url,
             }))
 
             if request.path == f"/{healthcheck_key}":
@@ -342,7 +343,7 @@ def proxy_app(
         redis_client.set(f"{redis_prefix}__{key}", value.encode(), ex=ex)
 
     class RequestLinePathHandler(WSGIHandler):
-        # The default WSGIHandler does not preseve a trailing question mark
+        # The default WSGIHandler does not preserve a trailing question mark
         # from the original request-line path sent by the client
         def get_environ(self):
             return {
@@ -354,6 +355,7 @@ def proxy_app(
 
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
     app.add_url_rule("/<path:path>", view_func=proxy)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     server = WSGIServer(("0.0.0.0", port), app, handler_class=RequestLinePathHandler)
 
     return start, stop
