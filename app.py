@@ -140,7 +140,7 @@ def proxy_app(
         @wraps(f)
         def _authenticate_by_sso(*args, **kwargs):
             logger.debug("Headers: %s", json.dumps(dict(request.headers)))
-            logger.debug("Host: %s", json.dumps(dict(request.host)))
+            logger.debug("Host: %s", request.host)
 
             if request.path == f"/{healthcheck_key}":
                 logger.debug("Allowing healthcheck")
