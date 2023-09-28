@@ -15,7 +15,8 @@ from functools import wraps
 
 import redis
 import requests
-from flask import Flask, Response, request, jsonify
+import json
+from flask import Flask, Response, request
 from gevent.pywsgi import WSGIHandler, WSGIServer
 
 # suppress very verbose boto3 logging
@@ -138,7 +139,7 @@ def proxy_app(
 
         @wraps(f)
         def _authenticate_by_sso(*args, **kwargs):
-            logger.debug("Request: %s", jsonify(dict(request.headers)))
+            logger.debug("Headers: %s", json.dumps(dict(request.headers)))
 
             if request.path == f"/{healthcheck_key}":
                 logger.debug("Allowing healthcheck")
