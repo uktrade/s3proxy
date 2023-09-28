@@ -305,7 +305,7 @@ def proxy_app(
             for _ in iter(streamingBody):
                 pass
 
-        request_kwargs = {"Bucket": bucket, "Key": key_prefix + path}
+        request_kwargs = {"Bucket": bucket, "Key": key_prefix + request.path.lstrip('/')}
 
         logger.debug("S3 Request %s %s", path, json.dumps(request_kwargs))
 
