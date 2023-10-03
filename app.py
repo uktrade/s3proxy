@@ -362,7 +362,7 @@ def proxy_app(
             }
 
         def read_request(self, raw_requestline):
-            print('Raw Request: %s'.format(raw_requestline))
+            print(f'Raw Request: {raw_requestline}')
             return super().read_request(raw_requestline)
 
 
