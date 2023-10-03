@@ -361,6 +361,11 @@ def proxy_app(
                 "REQUEST_LINE_PATH": self.path,
             }
 
+        def read_request(self, raw_requestline):
+            print('Raw Request: %s'.format(raw_requestline))
+            return super().read_request(raw_requestline)
+
+
     app = Flask("app")
 
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
