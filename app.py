@@ -1,5 +1,3 @@
-import re
-
 import gevent
 from gevent import monkey
 
@@ -19,7 +17,6 @@ import requests
 import json
 from flask import Flask, Response, request
 from gevent.pywsgi import WSGIHandler, WSGIServer
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 # suppress very verbose boto3 logging
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -292,9 +289,7 @@ def proxy_app(
             for _ in iter(streamingBody):
                 pass
 
-        request_kwargs = {"Bucket": bucket, "Key": key_prefix + request.path.lstrip('/')}
-
-        logger.debug("S3 Request %s %s", path, json.dumps(request_kwargs))
+        request_kwargs = {"Bucket": bucket, "Key": key_prefix + path}
 
         for key in proxied_request_headers:
             if key in request.headers:
@@ -348,16 +343,10 @@ def proxy_app(
                 "REQUEST_LINE_PATH": self.path,
             }
 
-        def read_request(self, raw_requestline):
-            print(f'Raw Request: {raw_requestline}')
-            return super().read_request(raw_requestline)
-
-
     app = Flask("app")
 
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
     app.add_url_rule("/<path:path>", view_func=proxy)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     server = WSGIServer(("0.0.0.0", port), app, handler_class=RequestLinePathHandler)
 
     return start, stop
