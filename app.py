@@ -15,6 +15,8 @@ from functools import wraps
 
 import redis
 import requests
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
 from flask import Flask, Response, request
 from gevent.pywsgi import WSGIHandler, WSGIServer
 
@@ -76,6 +78,7 @@ def proxy_app(
     s3_use_local=None,
     s3_endpoint_url=None,
     sso_url_internal=None,
+    enable_xray=False,
 ):
     proxied_request_headers = [
         "range",
@@ -138,7 +141,6 @@ def proxy_app(
 
         @wraps(f)
         def _authenticate_by_sso(*args, **kwargs):
-
             if request.path == f"/{healthcheck_key}":
                 logger.debug("Allowing healthcheck")
                 return f(*args, **kwargs)
@@ -345,6 +347,10 @@ def proxy_app(
 
     app = Flask("app")
 
+    if enable_xray:
+        xray_recorder.configure(service="S3Proxy")
+        XRayMiddleware(app, xray_recorder)
+
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
     app.add_url_rule("/<path:path>", view_func=proxy)
     server = WSGIServer(("0.0.0.0", port), app, handler_class=RequestLinePathHandler)
@@ -388,6 +394,7 @@ def main():
         s3_use_local,
         os.environ.get("S3_ENDPOINT_URL", None),
         os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
+        os.environ.get("ENABLE_XRAY", False),
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)
