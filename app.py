@@ -394,7 +394,7 @@ def main():
         s3_use_local,
         os.environ.get("S3_ENDPOINT_URL", None),
         os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
-        os.environ.get("ENABLE_XRAY", os.environ["ENABLE_XRAY"]),
+        os.environ.get("ENABLE_XRAY", False),
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)
