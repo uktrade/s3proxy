@@ -20,7 +20,7 @@ aws-xray-sdk = "^2.12.1"
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-black = "^22.12.0"
+black = "^24.3.0"
 mypy = "^0.991"
 detect-secrets = "^1.4.0"
 types-redis = "^4.4.0.3"
