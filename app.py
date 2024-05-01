@@ -13,6 +13,10 @@ import urllib.parse
 from datetime import datetime
 from functools import wraps
 
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
 import redis
 import requests
 from aws_xray_sdk.core import xray_recorder
@@ -28,6 +32,18 @@ logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
 import boto3
 from botocore.config import Config
+
+
+def get_ecs_task_id():
+    metadata_url = os.environ.get("ECS_CONTAINER_METADATA_URI_V4")
+
+    if not metadata_url:
+        return None
+
+    resp = requests.get(metadata_url + "/task")
+
+    if resp.status_code == 200:
+        return resp.json()["TaskArn"].split("/")[-1]
 
 
 def camel_to_pascal_case(input):
@@ -73,12 +89,17 @@ def proxy_app(
     aws_region,
     healthcheck_key,
     key_prefix=None,
+    environment_name=None,
+    instance_id=None,
     aws_access_key_id=None,
     aws_secret_access_key=None,
     s3_use_local=None,
     s3_endpoint_url=None,
     sso_url_internal=None,
     enable_xray=False,
+    sentry_dsn=None,
+    sentry_enable_tracing=False,
+    sentry_trace_sample_rate=0.0,
 ):
     proxied_request_headers = [
         "range",
@@ -351,6 +372,18 @@ def proxy_app(
         xray_recorder.configure(service="S3Proxy")
         XRayMiddleware(app, xray_recorder)
 
+    # Configure Sentry if a DSN is set
+    if sentry_dsn:
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            environment=environment_name,
+            instance_id=instance_id,
+            integrations=[FlaskIntegration(), RedisIntegration()],
+            send_default_pii=True,  # Enable associating exceptions to users
+            enable_tracing=sentry_enable_tracing,
+            traces_sample_rate=sentry_trace_sample_rate,
+        )
+
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
     app.add_url_rule("/<path:path>", view_func=proxy)
     server = WSGIServer(("0.0.0.0", port), app, handler_class=RequestLinePathHandler)
@@ -365,6 +398,12 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(stdout_handler)
 
+    def _bool(value):
+        return value and str(value).lower() == "true"
+
+    enable_sentry_tracing = _bool(os.environ.get("SENTRY_ENABLE_TRACING"))
+    enable_xray = _bool(os.environ.get("ENABLE_XRAY"))
+
     s3_use_local = os.environ.get("S3_USE_LOCAL", False)
     if s3_use_local and s3_use_local not in [0, "0", "false", "False"]:
         s3_use_local = True
@@ -378,6 +417,9 @@ def main():
     else:
         redis_url = os.environ["REDIS_ENDPOINT"]
 
+    environment_name = os.environ.get("COPILOT_ENVIRONMENT_NAME", os.environ.get("APP_ENV", "undefined"))
+    instance_id = get_ecs_task_id() or "undefined"
+
     start, stop = proxy_app(
         logger,
         int(os.environ["PORT"]),
@@ -389,12 +431,17 @@ def main():
         os.environ["AWS_DEFAULT_REGION"],
         os.environ["AWS_S3_HEALTHCHECK_KEY"],
         os.environ.get("KEY_PREFIX", None),
+        environment_name,
+        instance_id,
         os.environ.get("AWS_ACCESS_KEY_ID", None),
         os.environ.get("AWS_SECRET_ACCESS_KEY", None),
         s3_use_local,
         os.environ.get("S3_ENDPOINT_URL", None),
         os.environ.get("SSO_URL_INTERNAL", os.environ["SSO_URL"]),
-        os.environ.get("ENABLE_XRAY", False),
+        enable_xray,
+        os.environ.get("SENTRY_DSN", None),
+        enable_sentry_tracing,
+        float(os.environ.get("SENTRY_BROWSER_TRACES_SAMPLE_RATE", "0.0"))
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)
