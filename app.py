@@ -13,16 +13,15 @@ import urllib.parse
 from datetime import datetime
 from functools import wraps
 
-import sentry_sdk
-from sentry_sdk.integrations.flask import FlaskIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
-
 import redis
 import requests
+import sentry_sdk
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
 from flask import Flask, Response, request
 from gevent.pywsgi import WSGIHandler, WSGIServer
+from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
 
 # suppress very verbose boto3 logging
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -441,7 +440,7 @@ def main():
         enable_xray,
         os.environ.get("SENTRY_DSN", None),
         enable_sentry_tracing,
-        float(os.environ.get("SENTRY_BROWSER_TRACES_SAMPLE_RATE", "0.0"))
+        float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.0"))
     )
 
     gevent.signal.signal(signal.SIGTERM, stop)
