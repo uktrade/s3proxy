@@ -376,12 +376,12 @@ def proxy_app(
         sentry_sdk.init(
             dsn=sentry_dsn,
             environment=environment_name,
-            instance_id=instance_id,
             integrations=[FlaskIntegration(), RedisIntegration()],
             send_default_pii=True,  # Enable associating exceptions to users
             enable_tracing=sentry_enable_tracing,
             traces_sample_rate=sentry_trace_sample_rate,
         )
+        sentry_sdk.set_tag("instance_id", instance_id)
 
     app.add_url_rule("/", view_func=proxy, defaults={"path": "/"})
     app.add_url_rule("/<path:path>", view_func=proxy)
