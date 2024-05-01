@@ -42,7 +42,7 @@ def get_ecs_task_id():
     resp = requests.get(metadata_url + "/task")
 
     if resp.status_code == 200:
-        return resp.json()["TaskArn"].split("/")[-1]
+        return resp.json()["TaskARN"].split("/")[-1]
 
 
 def camel_to_pascal_case(input):
