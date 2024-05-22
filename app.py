@@ -84,6 +84,7 @@ def proxy_app(
     sso_url,
     sso_client_id,
     sso_client_secret,
+    sso_token_check_grace_period,
     bucket,
     aws_region,
     healthcheck_key,
@@ -148,6 +149,7 @@ def proxy_app(
         session_cookie_name = "assets_session_id"
         session_state_key_prefix = "sso_state"
         session_token_key = "sso_token"
+        session_token_checked_key = "sso_token_checked"
 
         expired_message = (
             b'<p style="font-weight: bold; font-family: Helvetica, Arial,'
@@ -191,6 +193,8 @@ def proxy_app(
                         value,
                         redis_max_age_session,
                     )
+
+                set_token_recently_checked_redis_key(session_id)
 
                 return response
 
@@ -267,6 +271,7 @@ def proxy_app(
                     Response(status=302, headers={"location": final_uri}),
                     {session_token_key: json.loads(content)["access_token"]},
                 )
+
                 response.autocorrect_location_header = False
                 return response
 
@@ -277,6 +282,17 @@ def proxy_app(
                 ) as response:
                     return response.status_code
 
+            def is_token_check_required():
+                try:
+                    get_session_value(session_token_checked_key)
+                except KeyError:
+                    return True
+
+                return False
+
+            def set_token_recently_checked_redis_key(session_id):
+                return redis_set(f"{session_cookie_name}__{session_id}__{session_token_checked_key}", "checked", sso_token_check_grace_period)
+
             if request.path == redirect_from_sso_path:
                 return redirect_to_final()
 
@@ -285,13 +301,20 @@ def proxy_app(
             except KeyError:
                 return redirect_to_sso()
 
-            token_code = get_token_code(token)
-            if token_code in [401, 403]:
-                logger.debug("token_code response is %s", token_code)
-                return redirect_to_sso()
+            if is_token_check_required():
+                logging.debug("Verifying access token")
 
-            if token_code != 200:
-                return Response(b"", 500)
+                token_code = get_token_code(token)
+
+                if token_code in [401, 403]:
+                    logger.debug("token_code response is %s", token_code)
+                    return redirect_to_sso()
+
+                if token_code != 200:
+                    return Response(b"", 500)
+
+                session_id = request.cookies[session_cookie_name]
+                set_token_recently_checked_redis_key(session_id)
 
             return f(*args, **kwargs)
 
@@ -426,6 +449,7 @@ def main():
         os.environ["SSO_URL"],
         os.environ["SSO_CLIENT_ID"],
         os.environ["SSO_CLIENT_SECRET"],
+        int(os.environ.get("SSO_TOKEN_CHECK_GRACE_PERIOD", "3600")),
         os.environ["AWS_S3_BUCKET"],
         os.environ["AWS_DEFAULT_REGION"],
         os.environ["AWS_S3_HEALTHCHECK_KEY"],

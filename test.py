@@ -424,6 +424,10 @@ class TestS3ProxyE2E(unittest.TestCase):
         content = str(uuid.uuid4()).encode() * 100000
         put_object(key, content)
 
+        os.environ[
+            "SSO_TOKEN_CHECK_GRACE_PERIOD"
+        ] = "2"  # Set 2 second grace period
+
         with requests.Session() as session:
 
             with session.get(f"http://localhost:8080/{key}") as response_1:
@@ -431,6 +435,13 @@ class TestS3ProxyE2E(unittest.TestCase):
 
             stop_sso()
 
+            # Within grace period, should not check SSO
+            with session.get(f"http://localhost:8080/{key}") as response_1:
+                self.assertEqual(response_1.content, content)
+
+            time.sleep(2)
+
+            # Grace period elapsed, the access token should be checked
             with session.get(f"http://localhost:8080/{key}") as response_2:
                 self.assertEqual(response_2.status_code, 500)
                 self.assertNotIn(content, response_2.content)
