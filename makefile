@@ -78,7 +78,7 @@ shell:
 	docker-compose exec main bash
 
 all-requirements:
-	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --with production --without dev,testing
+	$(poetry) export -f requirements.txt --output requirements.txt --without-hashes --without dev,testing
 
 # internal use to allow `test` command to have other dependencies
 runtests:
