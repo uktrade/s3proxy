@@ -79,6 +79,8 @@ Ensure you have a docker daemon running and available. Note that by default your
 * Open a browser at http://localhost:8000/<object_key>
 * Edit your code locally as normal
 
+You can also browse the object storage at http://localhost:9001 using the credentials in the docker-compose.test.yml file. From there you can upload a file in `my-bucket` which you can retrieve via the proxy at the root.
+
 > Please note that the SSO mock is very limited in the way that it behaves. It may be useful while developing or debugging other functionality, but don't rely on it behaving as a real SSO service would.
 
 ### Adding dependencies
