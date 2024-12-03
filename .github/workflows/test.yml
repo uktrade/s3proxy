@@ -33,7 +33,7 @@ jobs:
             main.cache-to=type=gha
             main.tags=s3proxy/main
       - name: Run containers
-        run: COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
+        run: COMPOSE_DOCKER_CLI_BUILD=1 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d
       - name: Lint & Format
         run: make lint-ci
       - name: Test
