@@ -47,4 +47,6 @@ build-backend = "poetry.core.masonry.api"
 
 [[tool.mypy.overrides]]
 module = "mypy-gevent.*"
+module = "gevent.pywsgi.*"
+module = "aws_xray_sdk.*"
 ignore_missing_imports = true
