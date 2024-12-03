@@ -21,7 +21,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
         # this caches the docker layers
       - name: Build & cache main docker image
-        uses: docker/bake-action@v3.0.0
+        uses: docker/bake-action@v5.0.0
         with:
           files: |
             docker-compose.yml
