@@ -30,8 +30,8 @@ help:
 	@echo -e "$(COLOUR_YELLOW)make detect-secrets-audit$(COLOUR_NONE) : detect-secrets audit for the project"
 	@echo -e "$(COLOUR_YELLOW)make pre-commit$(COLOUR_NONE) : manually run pre-commit hook config against all files"
 
-compose-ci = docker-compose -f docker-compose.yml -f docker-compose.test.yml
-compose-dev = docker-compose -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.dev.yml
+compose-ci = docker compose -f docker-compose.yml -f docker-compose.test.yml
+compose-dev = docker compose -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.dev.yml
 
 build:
 	$(compose-dev) build
